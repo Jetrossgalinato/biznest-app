@@ -36,12 +36,7 @@ import logoImage from '@/assets/images/logo.png'
           <RouterLink to="/about">About</RouterLink>
         </Button>
         <ModeToggle />
-        <Button
-          as-child
-          variant="outline"
-          size="sm"
-          class="bg-foreground text-background hover:bg-foreground/90 hover:text-background/90 dark:bg-foreground dark:text-background dark:hover:bg-foreground/90 dark:hover:text-background/90"
-        >
+        <Button as-child size="sm">
           <RouterLink to="/login">Get Started</RouterLink>
         </Button>
       </div>

@@ -1,8 +1,10 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import HeroSection from './components/HeroSection.vue'
+</script>
 
 <template>
   <div class="flex w-full items-center justify-center rounded-lg">
-    <h1>Landing Page</h1>
+    <HeroSection />
   </div>
 </template>
 
