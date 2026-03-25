@@ -81,7 +81,7 @@ const partners = [
         class="w-full max-w-screen-xl mx-auto flex flex-col items-center justify-center gap-6 md:flex-row md:gap-12"
       >
         <span
-          class="text-lg font-semibold uppercase tracking-widest text-foreground/80 text-center"
+          class="text-md font-semibold uppercase tracking-widest text-foreground/80 text-center"
         >
           In partnership with
         </span>
@@ -95,10 +95,10 @@ const partners = [
             <img
               :src="partner.logoUrl"
               :alt="partner.name"
-              class="h-8 md:h-14 w-auto object-contain rounded-full"
+              class="h-8 md:h-12 w-auto object-contain rounded-full"
               @error="(e) => ((e.target as HTMLElement).style.display = 'none')"
             />
-            <span class="text-sm md:text-lg font-medium text-foreground/90">
+            <span class="text-md md:text-lg font-medium text-foreground/90">
               {{ partner.name }}
             </span>
           </div>
