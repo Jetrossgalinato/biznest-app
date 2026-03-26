@@ -86,9 +86,9 @@ import Button from '@/components/ui/button/Button.vue'
           </p>
 
           <!-- Title row -->
-          <div class="mt-3 flex items-start gap-2.5">
+          <div class="mt-3 flex items-center gap-2.5">
             <span
-              class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-bold leading-none"
+              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-bold leading-none"
               >✕</span
             >
             <TypographyH3> Stressful &amp; Manual Guessing </TypographyH3>
@@ -97,7 +97,8 @@ import Button from '@/components/ui/button/Button.vue'
           <!-- Bullet list -->
           <ul class="mt-6 space-y-3">
             <li v-for="point in oldWayPoints" :key="point" class="flex items-start gap-3">
-              <span class="mt-[3px] shrink-0 text-destructive font-bold text-sm leading-none"
+              <span
+                class="mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center text-destructive font-bold text-sm leading-none"
                 >✕</span
               >
               <span class="text-sm leading-relaxed text-muted-foreground md:text-[0.95rem]">{{
@@ -146,9 +147,9 @@ import Button from '@/components/ui/button/Button.vue'
           </p>
 
           <!-- Title row -->
-          <div class="mt-3 flex items-start gap-2.5">
+          <div class="mt-3 flex items-center gap-2.5">
             <span
-              class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-success text-success-foreground text-xs font-bold leading-none"
+              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-success text-success-foreground text-xs font-bold leading-none"
               >✓</span
             >
             <TypographyH3> AI-Powered, Data-Driven Decisions </TypographyH3>
@@ -157,7 +158,10 @@ import Button from '@/components/ui/button/Button.vue'
           <!-- Bullet list -->
           <ul class="mt-6 space-y-3">
             <li v-for="point in bizNestWayPoints" :key="point" class="flex items-start gap-3">
-              <span class="mt-[3px] shrink-0 text-success font-bold text-sm leading-none">✓</span>
+              <span
+                class="mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center text-success font-bold text-sm leading-none"
+                >✓</span
+              >
               <span class="text-sm leading-relaxed text-muted-foreground md:text-[0.95rem]">{{
                 point
               }}</span>
