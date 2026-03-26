@@ -1,30 +1,62 @@
 <script setup lang="ts">
 import { ref, type HTMLAttributes } from 'vue'
+import { useRouter } from 'vue-router'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
   FieldSeparator,
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { signInWithEmail } from '@/services/auth.service'
 import logoImage from '@/assets/images/logo.png'
 
 const props = defineProps<{
   class?: HTMLAttributes['class']
 }>()
 
+const router = useRouter()
 const showPassword = ref(false)
+const email = ref('')
+const password = ref('')
+const isSubmitting = ref(false)
+const errorMessage = ref('')
+
+const handleSubmit = async (): Promise<void> => {
+  errorMessage.value = ''
+
+  if (!email.value || !password.value) {
+    errorMessage.value = 'Please enter your email and password.'
+    return
+  }
+
+  isSubmitting.value = true
+
+  try {
+    await signInWithEmail({
+      email: email.value,
+      password: password.value,
+    })
+
+    await router.push('/')
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Unable to sign in right now.'
+  } finally {
+    isSubmitting.value = false
+  }
+}
 </script>
 
 <template>
   <div :class="cn('flex flex-col gap-6', props.class)">
     <Card class="overflow-hidden p-0">
       <CardContent class="grid p-0 md:grid-cols-2">
-        <form class="p-6 md:p-8">
+        <form class="p-6 md:p-8" @submit.prevent="handleSubmit">
           <FieldGroup>
             <div class="flex flex-col items-center gap-2 text-center">
               <h1 class="text-2xl font-semibold">Welcome back</h1>
@@ -32,7 +64,14 @@ const showPassword = ref(false)
             </div>
             <Field>
               <FieldLabel for="email"> Email </FieldLabel>
-              <Input id="email" type="email" placeholder="m@example.com" required />
+              <Input
+                id="email"
+                v-model="email"
+                type="email"
+                placeholder="m@example.com"
+                autocomplete="email"
+                required
+              />
             </Field>
             <Field>
               <div class="flex items-center">
@@ -44,8 +83,10 @@ const showPassword = ref(false)
               <div class="relative">
                 <Input
                   id="password"
+                  v-model="password"
                   :type="showPassword ? 'text' : 'password'"
                   class="pr-10"
+                  autocomplete="current-password"
                   required
                 />
                 <button
@@ -92,8 +133,13 @@ const showPassword = ref(false)
                 </button>
               </div>
             </Field>
+            <Field v-if="errorMessage">
+              <FieldError>{{ errorMessage }}</FieldError>
+            </Field>
             <Field>
-              <Button type="submit"> Login </Button>
+              <Button type="submit" :disabled="isSubmitting">
+                {{ isSubmitting ? 'Logging in...' : 'Login' }}
+              </Button>
             </Field>
             <FieldSeparator class="*:data-[slot=field-separator-content]:bg-card">
               Or continue with

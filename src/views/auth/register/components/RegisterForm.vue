@@ -1,31 +1,85 @@
 <script setup lang="ts">
 import { ref, type HTMLAttributes } from 'vue'
+import { useRouter } from 'vue-router'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
   FieldSeparator,
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { signUpWithEmail } from '@/services/auth.service'
 import logoImage from '@/assets/images/logo.png'
 
 const props = defineProps<{
   class?: HTMLAttributes['class']
 }>()
 
+const router = useRouter()
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
+const email = ref('')
+const password = ref('')
+const confirmPassword = ref('')
+const isSubmitting = ref(false)
+const errorMessage = ref('')
+const successMessage = ref('')
+
+const handleSubmit = async (): Promise<void> => {
+  errorMessage.value = ''
+  successMessage.value = ''
+
+  if (!email.value || !password.value || !confirmPassword.value) {
+    errorMessage.value = 'Please fill in every field.'
+    return
+  }
+
+  if (password.value.length < 8) {
+    errorMessage.value = 'Password must be at least 8 characters long.'
+    return
+  }
+
+  if (password.value !== confirmPassword.value) {
+    errorMessage.value = 'Passwords do not match.'
+    return
+  }
+
+  isSubmitting.value = true
+
+  try {
+    const response = await signUpWithEmail({
+      email: email.value,
+      password: password.value,
+    })
+
+    if (response.session) {
+      await router.push('/')
+      return
+    }
+
+    successMessage.value =
+      'Account created. Check your inbox to confirm your email before signing in.'
+    password.value = ''
+    confirmPassword.value = ''
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : 'Unable to create your account right now.'
+  } finally {
+    isSubmitting.value = false
+  }
+}
 </script>
 
 <template>
   <div :class="cn('flex flex-col gap-6', props.class)">
     <Card class="overflow-hidden p-0">
       <CardContent class="grid p-0 md:grid-cols-2">
-        <form class="p-6 md:p-8">
+        <form class="p-6 md:p-8" @submit.prevent="handleSubmit">
           <FieldGroup>
             <div class="flex flex-col items-center gap-2 text-center">
               <h1 class="text-2xl font-semibold">Create your account</h1>
@@ -35,7 +89,14 @@ const showConfirmPassword = ref(false)
             </div>
             <Field>
               <FieldLabel for="email"> Email </FieldLabel>
-              <Input id="email" type="email" placeholder="m@example.com" required />
+              <Input
+                id="email"
+                v-model="email"
+                type="email"
+                placeholder="m@example.com"
+                autocomplete="email"
+                required
+              />
               <FieldDescription>
                 We'll use this to contact you. We will not share your email with anyone else.
               </FieldDescription>
@@ -47,8 +108,10 @@ const showConfirmPassword = ref(false)
                   <div class="relative">
                     <Input
                       id="password"
+                      v-model="password"
                       :type="showPassword ? 'text' : 'password'"
                       class="pr-10"
+                      autocomplete="new-password"
                       required
                     />
                     <button
@@ -100,8 +163,10 @@ const showConfirmPassword = ref(false)
                   <div class="relative">
                     <Input
                       id="confirm-password"
+                      v-model="confirmPassword"
                       :type="showConfirmPassword ? 'text' : 'password'"
                       class="pr-10"
+                      autocomplete="new-password"
                       required
                     />
                     <button
@@ -153,8 +218,16 @@ const showConfirmPassword = ref(false)
               </Field>
               <FieldDescription> Must be at least 8 characters long. </FieldDescription>
             </Field>
+            <Field v-if="errorMessage">
+              <FieldError>{{ errorMessage }}</FieldError>
+            </Field>
+            <Field v-if="successMessage">
+              <FieldDescription class="text-green-700">{{ successMessage }}</FieldDescription>
+            </Field>
             <Field>
-              <Button type="submit"> Create Account </Button>
+              <Button type="submit" :disabled="isSubmitting">
+                {{ isSubmitting ? 'Creating account...' : 'Create Account' }}
+              </Button>
             </Field>
             <FieldSeparator class="*:data-[slot=field-separator-content]:bg-card">
               Or continue with
