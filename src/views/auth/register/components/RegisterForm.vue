@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from 'vue'
+import { ref, type HTMLAttributes } from 'vue'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -16,6 +16,9 @@ import logoImage from '@/assets/images/logo.png'
 const props = defineProps<{
   class?: HTMLAttributes['class']
 }>()
+
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
 </script>
 
 <template>
@@ -25,7 +28,7 @@ const props = defineProps<{
         <form class="p-6 md:p-8">
           <FieldGroup>
             <div class="flex flex-col items-center gap-2 text-center">
-              <h1 class="text-2xl font-bold">Create your account</h1>
+              <h1 class="text-2xl font-semibold">Create your account</h1>
               <p class="text-muted-foreground text-sm text-balance">
                 Enter your email below to create your account
               </p>
@@ -41,11 +44,111 @@ const props = defineProps<{
               <Field class="grid grid-cols-2 gap-4">
                 <Field>
                   <FieldLabel for="password"> Password </FieldLabel>
-                  <Input id="password" type="password" required />
+                  <div class="relative">
+                    <Input
+                      id="password"
+                      :type="showPassword ? 'text' : 'password'"
+                      class="pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      class="text-muted-foreground hover:text-foreground absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center"
+                      :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                      @click="showPassword = !showPassword"
+                    >
+                      <svg
+                        v-if="showPassword"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="h-4 w-4"
+                      >
+                        <path d="m3 3 18 18" />
+                        <path d="M10.58 10.58a2 2 0 0 0 2.83 2.83" />
+                        <path
+                          d="M9.36 5.37A9.91 9.91 0 0 1 12 5c5 0 9.27 3.11 11 7-1.02 2.29-2.75 4.15-4.93 5.3"
+                        />
+                        <path
+                          d="M6.61 6.61C4.62 7.97 3.05 9.85 2 12c1.73 3.89 6 7 10 7a9.67 9.67 0 0 0 4.12-.93"
+                        />
+                      </svg>
+                      <svg
+                        v-else
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="h-4 w-4"
+                      >
+                        <path d="M2 12s3.64-7 10-7 10 7 10 7-3.64 7-10 7-10-7-10-7Z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                      <span class="sr-only">{{ showPassword ? 'Hide' : 'Show' }} password</span>
+                    </button>
+                  </div>
                 </Field>
                 <Field>
                   <FieldLabel for="confirm-password"> Confirm Password </FieldLabel>
-                  <Input id="confirm-password" type="password" required />
+                  <div class="relative">
+                    <Input
+                      id="confirm-password"
+                      :type="showConfirmPassword ? 'text' : 'password'"
+                      class="pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      class="text-muted-foreground hover:text-foreground absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center"
+                      :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
+                      @click="showConfirmPassword = !showConfirmPassword"
+                    >
+                      <svg
+                        v-if="showConfirmPassword"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="h-4 w-4"
+                      >
+                        <path d="m3 3 18 18" />
+                        <path d="M10.58 10.58a2 2 0 0 0 2.83 2.83" />
+                        <path
+                          d="M9.36 5.37A9.91 9.91 0 0 1 12 5c5 0 9.27 3.11 11 7-1.02 2.29-2.75 4.15-4.93 5.3"
+                        />
+                        <path
+                          d="M6.61 6.61C4.62 7.97 3.05 9.85 2 12c1.73 3.89 6 7 10 7a9.67 9.67 0 0 0 4.12-.93"
+                        />
+                      </svg>
+                      <svg
+                        v-else
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="h-4 w-4"
+                      >
+                        <path d="M2 12s3.64-7 10-7 10 7 10 7-3.64 7-10 7-10-7-10-7Z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                      <span class="sr-only"
+                        >{{ showConfirmPassword ? 'Hide' : 'Show' }} password</span
+                      >
+                    </button>
+                  </div>
                 </Field>
               </Field>
               <FieldDescription> Must be at least 8 characters long. </FieldDescription>
