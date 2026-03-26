@@ -1,35 +1,29 @@
 <script setup lang="ts">
+import type { Component } from 'vue'
 import { Clock3, Mail, MapPin } from 'lucide-vue-next'
 import { RouterLink } from 'vue-router'
 import logoImage from '@/assets/images/logo.png'
+import {
+  footerBrandDescription,
+  footerBrandName,
+  footerContactItems,
+  footerCurrentYear,
+  footerLegalLinks,
+  footerQuickLinks,
+  type FooterContactIcon,
+} from '@/types/footer'
 
 defineOptions({
   name: 'AppFooter',
 })
 
-const currentYear = new Date().getFullYear()
-
-interface FooterQuickLink {
-  label: string
-  to: string
+const contactIconMap: Record<FooterContactIcon, Component> = {
+  mail: Mail,
+  'map-pin': MapPin,
+  'clock-3': Clock3,
 }
 
-interface FooterLegalLink {
-  label: string
-  href: string
-}
-
-const quickLinks: FooterQuickLink[] = [
-  { label: 'Home', to: '/' },
-  { label: 'About', to: '/about' },
-  { label: 'Get Started', to: '/login' },
-]
-
-const legalLinks: FooterLegalLink[] = [
-  { label: 'Privacy Policy', href: '#' },
-  { label: 'Terms of Service', href: '#' },
-  { label: 'Cookie Preferences', href: '#' },
-]
+const resolveContactIcon = (icon: FooterContactIcon): Component => contactIconMap[icon]
 </script>
 
 <template>
@@ -43,11 +37,10 @@ const legalLinks: FooterLegalLink[] = [
             >
               <img :src="logoImage" alt="BizNest logo" class="h-full w-full object-contain" />
             </span>
-            <span class="text-xl font-semibold tracking-wide">BizNest</span>
+            <span class="text-xl font-semibold tracking-wide">{{ footerBrandName }}</span>
           </RouterLink>
           <p class="max-w-sm text-sm leading-relaxed text-muted-foreground">
-            A location intelligence platform that helps founders pick the right place, launch with
-            confidence, and grow with local insights.
+            {{ footerBrandDescription }}
           </p>
         </div>
 
@@ -56,7 +49,7 @@ const legalLinks: FooterLegalLink[] = [
             Quick Links
           </h3>
           <ul class="mt-4 space-y-2 text-sm text-muted-foreground">
-            <li v-for="link in quickLinks" :key="link.label">
+            <li v-for="link in footerQuickLinks" :key="link.label">
               <RouterLink
                 :to="link.to"
                 class="transition-colors duration-200 hover:text-foreground"
@@ -70,22 +63,20 @@ const legalLinks: FooterLegalLink[] = [
         <div>
           <h3 class="text-sm font-semibold uppercase tracking-[0.12em] text-foreground">Contact</h3>
           <ul class="mt-4 space-y-3 text-sm text-muted-foreground">
-            <li class="flex items-start gap-2">
-              <Mail class="mt-0.5 h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
+            <li v-for="item in footerContactItems" :key="item.label" class="flex items-start gap-2">
+              <component
+                :is="resolveContactIcon(item.icon)"
+                class="mt-0.5 h-4 w-4 shrink-0 text-accent"
+                aria-hidden="true"
+              />
               <a
-                href="mailto:hello@biznest.app"
+                v-if="item.href"
+                :href="item.href"
                 class="transition-colors duration-200 hover:text-foreground"
               >
-                hello@biznest.app
+                {{ item.label }}
               </a>
-            </li>
-            <li class="flex items-start gap-2">
-              <MapPin class="mt-0.5 h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
-              <span>Remote-first team, serving local entrepreneurs globally</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <Clock3 class="mt-0.5 h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
-              <span>Mon to Fri, 9:00 AM to 6:00 PM</span>
+              <span v-else>{{ item.label }}</span>
             </li>
           </ul>
         </div>
@@ -94,10 +85,10 @@ const legalLinks: FooterLegalLink[] = [
       <div
         class="mt-8 flex flex-col gap-3 border-t border-border/70 pt-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
       >
-        <p>Copyright {{ currentYear }} BizNest. All rights reserved.</p>
+        <p>Copyright {{ footerCurrentYear }} {{ footerBrandName }}. All rights reserved.</p>
         <div class="flex flex-wrap items-center gap-4">
           <a
-            v-for="link in legalLinks"
+            v-for="link in footerLegalLinks"
             :key="link.label"
             :href="link.href"
             class="transition-colors duration-200 hover:text-foreground"
