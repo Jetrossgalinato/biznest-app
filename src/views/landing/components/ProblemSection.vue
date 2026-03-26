@@ -185,13 +185,13 @@ import Button from '@/components/ui/button/Button.vue'
 
       <!-- CTA Buttons -->
       <div class="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-        <Button size="lg" class="text-lg">
-          <TypographySmall as="span" class="text-current text-lg leading-none"
+        <Button>
+          <TypographySmall as="span" class="text-current text-md leading-none"
             >See How It Works</TypographySmall
           >
         </Button>
-        <Button variant="ghost" size="lg" class="text-lg">
-          <TypographySmall as="span" class="text-current text-lg leading-none"
+        <Button variant="ghost">
+          <TypographySmall as="span" class="text-current text-md leading-none"
             >Start Finding Locations</TypographySmall
           >
         </Button>
