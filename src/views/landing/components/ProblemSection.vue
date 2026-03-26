@@ -16,9 +16,9 @@ import Button from '@/components/ui/button/Button.vue'
   <section class="w-full bg-background py-20 md:py-28">
     <div class="mx-auto w-full max-w-screen-xl px-6 md:px-10">
       <!-- Heading -->
-      <div class="mx-auto mb-14 max-w-3xl text-center md:mb-16">
+      <div class="mx-auto mb-14 max-w-4xl text-center md:mb-16">
         <TypographyH2>
-          Finding a profitable location is usually a guessing game.
+          Finding a profitable location is usually a guessing game. <br />
           <TypographyMuted as="span" class="inline text-inherit text-accent text-4xl"
             >We turned it into a science.</TypographyMuted
           >
