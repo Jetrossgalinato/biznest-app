@@ -1,10 +1,21 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
-import { FileText } from 'lucide-vue-next';
+import { onMounted, computed } from 'vue';
+import { FileText, Download } from 'lucide-vue-next';
 import { useReports } from '../composables/useReports';
+import { usePdfExport } from '../composables/usePdfExport';
 import { TypographyH3, TypographyP } from '@/components/typography';
 
 const { value, tabs, loading, error, handleChange, fetchReports } = useReports();
+const { exportToPdf } = usePdfExport();
+
+const currentTab = computed(() => tabs.value[value.value]);
+const canExport = computed(() => currentTab.value?.tableData && currentTab.value.tableData.length > 0);
+
+const handleExport = () => {
+  if (canExport.value && currentTab.value) {
+    exportToPdf(currentTab.value, currentTab.value.label);
+  }
+};
 
 onMounted(() => {
   fetchReports();
@@ -12,26 +23,26 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="tabs-container">
-    <div class="reports-header my-4 mx-4">
-      <div class="reports-header-content">
-        <FileText class="reports-icon" :size="24" />
+  <div class="w-full">
+    <div class="my-4 mx-4 mb-3">
+      <div class="flex items-center justify-start gap-2">
+        <FileText class="text-primary shrink-0" :size="24" />
         <TypographyH3>Saved Reports</TypographyH3>
       </div>
-      <TypographyP class="reports-description">Analysis reports saved from the Map page.</TypographyP>
+      <TypographyP class="mt-1.5">Analysis reports saved from the Map page.</TypographyP>
     </div>
 
-    <div v-if="loading" class="loading-state">
-      <TypographyP>Loading reports...</TypographyP>
+    <div v-if="loading" class="p-6 text-center">
+      <TypographyP class="text-muted-foreground">Loading reports...</TypographyP>
     </div>
 
-    <div v-else-if="error" class="error-state">
-      <TypographyP>Error loading reports: {{ error }}</TypographyP>
+    <div v-else-if="error" class="p-6 text-center">
+      <TypographyP class="text-destructive">Error loading reports: {{ error }}</TypographyP>
     </div>
 
     <div v-else>
-      <div class="tabs-header">
-        <div class="tabs" role="tablist" aria-label="basic tabs example">
+      <div class="border-b border-border flex items-center justify-between">
+        <div class="flex gap-0" role="tablist" aria-label="basic tabs example">
           <button
             v-for="(tab, index) in tabs"
             :key="index"
@@ -39,12 +50,26 @@ onMounted(() => {
             :id="`simple-tab-${index}`"
             :aria-controls="`simple-tabpanel-${index}`"
             :aria-selected="value === index"
-            :class="['tab', { active: value === index }]"
+            :class="[
+              'px-4 py-3 bg-transparent border-none cursor-pointer text-sm font-medium uppercase transition-colors relative',
+              value === index
+                ? 'text-primary after:content-[\'\'] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary'
+                : 'text-muted-foreground hover:text-foreground/80'
+            ]"
             @click="handleChange(index)"
           >
             {{ tab.label }}
           </button>
         </div>
+        <button
+          v-if="canExport"
+          @click="handleExport"
+          class="flex items-center gap-1.5 px-4 py-1.5 mr-7 my-auto bg-primary text-primary-foreground border-none rounded font-medium text-sm cursor-pointer transition-colors hover:bg-primary/90 active:bg-primary/80"
+          title="Export to PDF"
+        >
+          <Download :size="18" />
+          <span>Export PDF</span>
+        </button>
       </div>
 
       <div
@@ -54,26 +79,26 @@ onMounted(() => {
         :hidden="value !== index"
         :id="`simple-tabpanel-${index}`"
         :aria-labelledby="`simple-tab-${index}`"
-        class="tab-panel"
+        class="block [[hidden]]:hidden"
       >
-        <div v-if="value === index" class="tab-content">
-          <table v-if="tab.tableData" class="data-table">
+        <div v-if="value === index" class="p-6">
+          <table v-if="tab.tableData" class="w-full border-collapse">
             <thead>
-              <tr>
-                <th>Business Owner</th>
-                <th>Owner Number</th>
-                <th>Owner Address</th>
-                <th>Zoning Location</th>
-                <th>GeoTag</th>
+              <tr class="bg-muted border-b-2 border-border">
+                <th class="px-4 py-3 text-left font-semibold text-xs text-foreground uppercase">Business Owner</th>
+                <th class="px-4 py-3 text-left font-semibold text-xs text-foreground uppercase">Contact Number</th>
+                <th class="px-4 py-3 text-left font-semibold text-xs text-foreground uppercase">Business Location</th>
+                <th class="px-4 py-3 text-left font-semibold text-xs text-foreground uppercase">Zoning Classification</th>
+                <th class="px-4 py-3 text-left font-semibold text-xs text-foreground uppercase">GeoTag</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(row, rowIndex) in tab.tableData" :key="rowIndex">
-                <td>{{ row.businessOwner }}</td>
-                <td>{{ row.ownerNumber }}</td>
-                <td>{{ row.ownerAddress }}</td>
-                <td>{{ row.zoningClassification }}</td>
-                <td>{{ row.geotag }}</td>
+              <tr v-for="(row, rowIndex) in tab.tableData" :key="rowIndex" class="border-b border-border last:border-b-0">
+                <td class="px-4 py-3 text-sm text-foreground">{{ row.businessOwner }}</td>
+                <td class="px-4 py-3 text-sm text-foreground">{{ row.contactNumber }}</td>
+                <td class="px-4 py-3 text-sm text-foreground">{{ row.businessLocation }}</td>
+                <td class="px-4 py-3 text-sm text-foreground">{{ row.zoningClassification }}</td>
+                <td class="px-4 py-3 text-sm text-foreground">{{ row.geotag }}</td>
               </tr>
             </tbody>
           </table>
@@ -85,134 +110,3 @@ onMounted(() => {
     </div>
   </div>
 </template>
-
-
-<style scoped>
-.tabs-container {
-  width: 100%;
-}
-
-.reports-header {
-  margin-bottom: 12px;
-}
-
-.reports-header-content {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 8px;
-}
-
-.reports-icon {
-  color: #1976d2;
-  flex-shrink: 0;
-}
-
-.reports-header h2,
-.reports-description {
-  margin: 0;
-}
-
-.reports-description {
-  margin-top: 6px;
-}
-
-.loading-state,
-.error-state {
-  padding: 24px;
-  text-align: center;
-}
-
-.loading-state {
-  color: #666;
-}
-
-.error-state {
-  color: #d32f2f;
-}
-
-.tabs-header {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-}
-
-.tabs {
-  display: flex;
-  gap: 0;
-}
-
-.tab {
-  padding: 12px 16px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  text-transform: uppercase;
-  color: rgba(0, 0, 0, 0.6);
-  transition: color 0.2s;
-  position: relative;
-}
-
-.tab:hover {
-  color: rgba(0, 0, 0, 0.8);
-}
-
-.tab.active {
-  color: #1976d2;
-}
-
-.tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background-color: #1976d2;
-}
-
-.tab-panel {
-  display: block;
-}
-
-.tab-panel[hidden] {
-  display: none;
-}
-
-.tab-content {
-  padding: 24px;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.data-table thead {
-  background-color: #f5f5f5;
-  border-bottom: 2px solid #e0e0e0;
-}
-
-.data-table th {
-  padding: 12px 16px;
-  text-align: left;
-  font-weight: 600;
-  font-size: 13px;
-  color: #333;
-  text-transform: uppercase;
-}
-
-.data-table tr {
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.data-table tr:last-child {
-  border-bottom: none;
-}
-
-.data-table td {
-  padding: 12px 16px;
-  font-size: 14px;
-  color: #333;
-}
-</style>

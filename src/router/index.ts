@@ -19,7 +19,7 @@ const router = createRouter({
           component: LandingView,
         },
         {
-          path: '/reports',
+          path: 'reports',
           name: 'reports',
           component: ReportsView,
         },
