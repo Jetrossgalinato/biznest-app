@@ -6,6 +6,7 @@ defineOptions({
 import { computed, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
+import { useAlertContext } from '@/composables/useAlert'
 import ModeToggle from '@/components/ui/ModeToggle.vue'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -21,6 +22,7 @@ import logoImage from '@/assets/images/logo.png'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const { showAlert, showSuccess } = useAlertContext()
 const isLoggingOut = ref(false)
 
 const userEmail = computed(() => authStore.user?.email?.trim() || 'Guest')
@@ -48,7 +50,16 @@ const handleLogout = async (): Promise<void> => {
 
   try {
     await authStore.logout()
+    showSuccess('You have been signed out from your BizNest account.', {
+      title: 'Logged out',
+    })
     await router.push('/auth')
+  } catch (error) {
+    showAlert({
+      title: 'Logout failed',
+      description: error instanceof Error ? error.message : 'Unable to log out right now.',
+      tone: 'destructive',
+    })
   } finally {
     isLoggingOut.value = false
   }
