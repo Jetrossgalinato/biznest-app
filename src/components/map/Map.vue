@@ -2,7 +2,7 @@
 <!-- eslint-disable vue/multi-word-component-names -->
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
-import type { Map as LeafletMap } from "leaflet"
+import type { LayerGroup as LeafletLayerGroup, Map as LeafletMap } from "leaflet"
 import "leaflet/dist/leaflet.css"
 
 defineOptions({
@@ -11,17 +11,73 @@ defineOptions({
 
 type MapProvider = "google" | "leaflet"
 
+type BarangayLngLat = [number, number]
+
+type BarangayPolygonGeometry = {
+  type: "Polygon"
+  coordinates: BarangayLngLat[][]
+}
+
+type BarangayMultiPolygonGeometry = {
+  type: "MultiPolygon"
+  coordinates: BarangayLngLat[][][]
+}
+
+type BarangayFeature = {
+  type: "Feature"
+  geometry: BarangayPolygonGeometry | BarangayMultiPolygonGeometry
+  properties?: {
+    brgy_name?: string
+    [key: string]: unknown
+  }
+}
+
+type BarangayFeatureCollection = {
+  type: "FeatureCollection"
+  features: BarangayFeature[]
+}
+
 const props = withDefaults(
   defineProps<{
     provider?: MapProvider
+    showBarangayBorders?: boolean
+    barangayBorders?: BarangayFeatureCollection | null
   }>(),
   {
     provider: "leaflet",
+    showBarangayBorders: false,
+    barangayBorders: null,
   },
 )
 
 type GoogleMapInstance = {
   setCenter: (latLng: { lat: number; lng: number }) => void
+}
+
+type GooglePolygonPath = {
+  lat: number
+  lng: number
+}
+
+type GoogleLatLng = {
+  lat: () => number
+  lng: () => number
+}
+
+type GoogleMapMouseEvent = {
+  latLng?: GoogleLatLng
+}
+
+type GooglePolygonInstance = {
+  setMap: (map: GoogleMapInstance | null) => void
+  addListener?: (eventName: "click" | "mouseover" | "mouseout", handler: (event: GoogleMapMouseEvent) => void) => void
+}
+
+type GoogleInfoWindowInstance = {
+  setContent: (content: string) => void
+  setPosition: (position: GooglePolygonPath) => void
+  open: (options: { map: GoogleMapInstance }) => void
+  close: () => void
 }
 
 type GoogleMapCtor = new (
@@ -46,6 +102,16 @@ type LegacyMarkerCtor = new (options: {
 type GoogleMapsAPI = {
   Map?: GoogleMapCtor
   Marker?: LegacyMarkerCtor
+  Polygon?: new (options: {
+    paths: GooglePolygonPath[][]
+    strokeColor: string
+    strokeOpacity: number
+    strokeWeight: number
+    fillColor: string
+    fillOpacity: number
+    map: GoogleMapInstance
+  }) => GooglePolygonInstance
+  InfoWindow?: new () => GoogleInfoWindowInstance
   importLibrary?: (name: string) => Promise<unknown>
   marker?: {
     AdvancedMarkerElement?: AdvancedMarkerLibrary["AdvancedMarkerElement"]
@@ -73,6 +139,23 @@ const resolvedGoogleMapsApiKey =
   googleMapsApiKey.startsWith("%VITE_") && googleMapsApiKey.endsWith("%") ? "" : googleMapsApiKey
 let googleMapsLoader: Promise<void> | null = null
 let leafletMap: LeafletMap | null = null
+let googleMap: GoogleMapInstance | null = null
+let googleBarangayPolygons: GooglePolygonInstance[] = []
+let googleBarangayInfoWindow: GoogleInfoWindowInstance | null = null
+let leafletBarangayLayer: LeafletLayerGroup | null = null
+
+const BARANGAY_BORDER_COLORS = [
+  "#ef4444",
+  "#3b82f6",
+  "#10b981",
+  "#f59e0b",
+  "#8b5cf6",
+  "#ec4899",
+  "#14b8a6",
+  "#eab308",
+  "#f97316",
+  "#06b6d4",
+]
 
 onMounted(async () => {
   await initProviderMap()
@@ -82,6 +165,8 @@ watch(
   () => props.provider,
   async () => {
     destroyLeafletMap()
+    destroyGoogleBarangayPolygons()
+    googleMap = null
 
     if (mapContainer.value) {
       mapContainer.value.innerHTML = ""
@@ -94,7 +179,17 @@ watch(
 
 onBeforeUnmount(() => {
   destroyLeafletMap()
+  destroyGoogleBarangayPolygons()
+  googleMap = null
 })
+
+watch(
+  () => [props.showBarangayBorders, props.barangayBorders],
+  async () => {
+    await renderBarangayBordersForActiveProvider()
+  },
+  { deep: true },
+)
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -175,9 +270,10 @@ async function initGoogleMap(): Promise<boolean> {
 
   const map = new MapCtor(mapContainer.value, {
     center: butuan,
-    zoom: 14,
+    zoom: 12,
     mapId: "DEMO_MAP_ID",
   })
+  googleMap = map
 
   if (AdvancedMarkerElement) {
     new AdvancedMarkerElement({
@@ -185,6 +281,7 @@ async function initGoogleMap(): Promise<boolean> {
       map,
       title: "Butuan City",
     })
+    await renderGoogleBarangayBorders()
     return true
   }
 
@@ -195,9 +292,11 @@ async function initGoogleMap(): Promise<boolean> {
       map,
       title: "Butuan City",
     })
+    await renderGoogleBarangayBorders()
     return true
   }
 
+  await renderGoogleBarangayBorders()
   return true
 }
 
@@ -214,13 +313,170 @@ async function initLeafletMap() {
   }).addTo(leafletMap)
 
   L.marker([butuan.lat, butuan.lng]).addTo(leafletMap).bindPopup("Butuan City")
+  await renderLeafletBarangayBorders()
 }
 
 function destroyLeafletMap() {
+  destroyLeafletBarangayLayer()
+
   if (leafletMap) {
     leafletMap.remove()
     leafletMap = null
   }
+}
+
+function destroyLeafletBarangayLayer() {
+  if (leafletBarangayLayer) {
+    leafletBarangayLayer.remove()
+    leafletBarangayLayer = null
+  }
+}
+
+function destroyGoogleBarangayPolygons() {
+  googleBarangayPolygons.forEach((polygon) => polygon.setMap(null))
+  googleBarangayPolygons = []
+
+  if (googleBarangayInfoWindow) {
+    googleBarangayInfoWindow.close()
+  }
+}
+
+function getBorderColor(index: number): string {
+  return BARANGAY_BORDER_COLORS[index % BARANGAY_BORDER_COLORS.length] ?? "#3b82f6"
+}
+
+function getFeaturePolygons(feature: BarangayFeature): BarangayLngLat[][][] {
+  if (feature.geometry.type === "Polygon") {
+    return [feature.geometry.coordinates]
+  }
+
+  return feature.geometry.coordinates
+}
+
+function toGooglePath(ring: BarangayLngLat[]): GooglePolygonPath[] {
+  return ring.map(([lng, lat]) => ({ lat, lng }))
+}
+
+function openGoogleBarangayInfoWindow(label: string, latLng?: GoogleLatLng) {
+  if (!googleMap || !googleBarangayInfoWindow) {
+    return
+  }
+
+  if (latLng) {
+    googleBarangayInfoWindow.setPosition({ lat: latLng.lat(), lng: latLng.lng() })
+  }
+
+  googleBarangayInfoWindow.setContent(label)
+  googleBarangayInfoWindow.open({ map: googleMap })
+}
+
+async function renderLeafletBarangayBorders() {
+  if (!leafletMap) {
+    return
+  }
+
+  destroyLeafletBarangayLayer()
+
+  if (!props.showBarangayBorders || !props.barangayBorders) {
+    return
+  }
+
+  const L = await import("leaflet")
+  const layerGroup = L.layerGroup()
+
+  props.barangayBorders.features.forEach((feature, featureIndex) => {
+    const borderColor = getBorderColor(featureIndex)
+    const label = feature.properties?.brgy_name ?? `Barangay ${featureIndex + 1}`
+
+    getFeaturePolygons(feature).forEach((polygonRings) => {
+      const latLngRings = polygonRings.map((ring) =>
+        ring.map(([lng, lat]) => [lat, lng] as [number, number]),
+      )
+
+      L.polygon(latLngRings, {
+        color: borderColor,
+        weight: 2,
+        opacity: 0.95,
+        fillColor: borderColor,
+        fillOpacity: 0.1,
+      })
+        .bindTooltip(label)
+        .addTo(layerGroup)
+    })
+  })
+
+  layerGroup.addTo(leafletMap)
+  leafletBarangayLayer = layerGroup
+}
+
+async function renderGoogleBarangayBorders() {
+  destroyGoogleBarangayPolygons()
+
+  if (!googleMap || !props.showBarangayBorders || !props.barangayBorders) {
+    return
+  }
+
+  const googleMaps = (window as GoogleWindow).google?.maps
+  if (!googleMaps?.Polygon) {
+    return
+  }
+
+  const PolygonCtor = googleMaps.Polygon
+  const activeGoogleMap = googleMap
+
+  if (googleMaps.InfoWindow && !googleBarangayInfoWindow) {
+    googleBarangayInfoWindow = new googleMaps.InfoWindow()
+  }
+
+  if (!activeGoogleMap) {
+    return
+  }
+
+  props.barangayBorders.features.forEach((feature, featureIndex) => {
+    const borderColor = getBorderColor(featureIndex)
+    const label = feature.properties?.brgy_name ?? `Barangay ${featureIndex + 1}`
+
+    getFeaturePolygons(feature).forEach((polygonRings) => {
+      const paths = polygonRings.map((ring) => toGooglePath(ring))
+
+      const polygon = new PolygonCtor({
+        paths,
+        strokeColor: borderColor,
+        strokeOpacity: 0.95,
+        strokeWeight: 2,
+        fillColor: borderColor,
+        fillOpacity: 0.1,
+        map: activeGoogleMap,
+      })
+
+      if (polygon.addListener) {
+        polygon.addListener("mouseover", (event) => {
+          openGoogleBarangayInfoWindow(label, event.latLng)
+        })
+
+        polygon.addListener("click", (event) => {
+          openGoogleBarangayInfoWindow(label, event.latLng)
+        })
+
+        polygon.addListener("mouseout", () => {
+          if (googleBarangayInfoWindow) {
+            googleBarangayInfoWindow.close()
+          }
+        })
+      }
+
+      googleBarangayPolygons.push(polygon)
+    })
+  })
+}
+
+async function renderBarangayBordersForActiveProvider() {
+  if (props.provider === "leaflet") {
+    await renderLeafletBarangayBorders()
+    return
+  }
+
+  await renderGoogleBarangayBorders()
 }
 
 async function initProviderMap() {
