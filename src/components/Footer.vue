@@ -11,8 +11,8 @@ import {
   footerCurrentYear,
   footerLegalLinks,
   footerQuickLinks,
-  type FooterContactIcon,
-} from '@/types/footer'
+} from '@/utils/footer'
+import type { FooterContactIcon } from '@/types/footer'
 
 defineOptions({
   name: 'AppFooter',
