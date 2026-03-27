@@ -1,33 +1,10 @@
 import { ref } from 'vue'
 import { fetchBarangayBordersSource } from '@/views/admin/admin_map/composables/barangayBordersSource'
-
-export type BarangayLngLat = [number, number]
-
-export interface BarangayPolygonGeometry {
-  type: 'Polygon'
-  coordinates: BarangayLngLat[][]
-}
-
-export interface BarangayMultiPolygonGeometry {
-  type: 'MultiPolygon'
-  coordinates: BarangayLngLat[][][]
-}
-
-export type BarangayGeometry = BarangayPolygonGeometry | BarangayMultiPolygonGeometry
-
-export interface BarangayFeature {
-  type: 'Feature'
-  geometry: BarangayGeometry
-  properties?: {
-    brgy_name?: string
-    [key: string]: unknown
-  }
-}
-
-export interface BarangayFeatureCollection {
-  type: 'FeatureCollection'
-  features: BarangayFeature[]
-}
+import type {
+  BarangayFeature,
+  BarangayFeatureCollection,
+  BarangayLngLat,
+} from '@/types/map.types'
 
 function isLngLat(value: unknown): value is BarangayLngLat {
   return (
