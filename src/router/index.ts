@@ -7,6 +7,7 @@ import LandingView from '@/views/landing/LandingView.vue'
 import LoginView from '@/views/auth/login/LoginView.vue'
 import RegisterView from '@/views/auth/register/RegisterView.vue'
 import TestView from '@/views/test/TestView.vue'
+import AdminMap from '@/views/admin/admin_map/AdminMap.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -49,6 +50,12 @@ const router = createRouter({
           path: '',
           name: 'test',
           component: TestView,
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'map',
+          name: 'admin-map',
+          component: AdminMap,
           meta: { requiresAuth: true },
         },
       ],

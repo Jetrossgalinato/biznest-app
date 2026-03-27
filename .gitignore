@@ -40,3 +40,6 @@ __screenshots__/
 
 #environment variables
 .env
+
+# Copilot local instruction variant
+.github/copilot-instruction-2.md
