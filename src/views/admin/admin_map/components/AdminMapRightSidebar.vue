@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
-import { Eye, Plus, X } from 'lucide-vue-next'
+import { ChevronRight, Eye, Plus, X } from 'lucide-vue-next'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,6 +25,7 @@ const emit = defineEmits<{
 }>()
 
 const showAddLayerModal = ref(false)
+const showLayerList = ref(false)
 
 const form = reactive<CreateZoningLayerInput>({
   title: '',
@@ -68,7 +69,7 @@ function submitLayer(): void {
     <Card class="max-h-[calc(100vh-10rem)] overflow-hidden py-0">
       <CardHeader class="border-b py-4">
         <CardTitle class="flex items-center justify-between text-base">
-          <span>Zoning Layers</span>
+          <span>Map Layer</span>
           <Button variant="ghost" size="icon-sm" @click="emit('close')">
             <X class="h-4 w-4" />
           </Button>
@@ -76,20 +77,32 @@ function submitLayer(): void {
       </CardHeader>
 
       <CardContent class="space-y-4 overflow-y-auto p-4">
-        <div class="space-y-2">
-          <div class="flex items-center justify-between">
-            <p class="text-sm font-semibold">Layer Controls</p>
-            <Badge variant="secondary">{{ layers.length }}</Badge>
-          </div>
+        <section class="space-y-2">
+          <button
+            type="button"
+            class="flex w-full items-center gap-2 rounded-md px-1 py-1 text-left"
+            @click="showLayerList = !showLayerList"
+          >
+            <p class="text-sm font-semibold">Zoning Layers</p>
+            <Badge variant="secondary" class="ml-auto">{{ layers.length }}</Badge>
+            <ChevronRight
+              class="h-4 w-4 transition-transform"
+              :class="showLayerList ? 'rotate-90' : ''"
+            />
+          </button>
+
+          <p v-if="!showLayerList" class="text-xs text-muted-foreground">
+            Click to view all zoning layers.
+          </p>
+
+          <div v-if="showLayerList" class="space-y-2">
           <Button class="w-full" @click="openAddLayerModal">
             <Plus class="h-4 w-4" />
             Add Zoning Layer
           </Button>
-        </div>
 
-        <Separator />
+          <Separator />
 
-        <section class="space-y-2">
           <div
             v-for="layer in layers"
             :key="layer.id"
@@ -105,13 +118,11 @@ function submitLayer(): void {
                 <Eye class="h-4 w-4" />
               </Button>
             </div>
-            <p v-if="layer.description" class="mt-1 text-xs text-muted-foreground">
-              {{ layer.description }}
-            </p>
           </div>
           <p v-if="layers.length === 0" class="text-xs text-muted-foreground">
             No zoning layers yet. Click Add Zoning Layer.
           </p>
+          </div>
         </section>
       </CardContent>
     </Card>
