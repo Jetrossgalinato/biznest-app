@@ -52,6 +52,21 @@ watch(
   },
 )
 
+watch(
+  () => props.layers,
+  (layers) => {
+    if (!props.open) {
+      return
+    }
+
+    const hasSelectedLayer = layers.some((layer) => layer.id === form.zoningLayerId)
+    if (!hasSelectedLayer) {
+      form.zoningLayerId = layers[0]?.id ?? ''
+    }
+  },
+  { deep: true },
+)
+
 function submit(): void {
   if (!canSubmit.value) {
     return
@@ -88,7 +103,7 @@ function submit(): void {
             <SelectTrigger>
               <SelectValue placeholder="Select zoning layer" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent class="z-10002">
               <SelectItem v-for="layer in layers" :key="layer.id" :value="layer.id">
                 {{ layer.title }}
               </SelectItem>
