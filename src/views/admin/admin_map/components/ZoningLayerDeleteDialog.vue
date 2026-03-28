@@ -14,9 +14,15 @@ withDefaults(
   defineProps<{
     open: boolean
     isSubmitting?: boolean
+    title?: string
+    description?: string
+    confirmLabel?: string
   }>(),
   {
     isSubmitting: false,
+    title: 'Delete Zoning Layer?',
+    description: 'This action cannot be undone. This will permanently delete the selected zoning layer.',
+    confirmLabel: 'Delete',
   },
 )
 
@@ -30,9 +36,9 @@ const emit = defineEmits<{
   <AlertDialog :open="open">
     <AlertDialogContent>
       <AlertDialogHeader>
-        <AlertDialogTitle>Delete Zoning Layer?</AlertDialogTitle>
+        <AlertDialogTitle>{{ title }}</AlertDialogTitle>
         <AlertDialogDescription>
-          This action cannot be undone. This will permanently delete the selected zoning layer.
+          {{ description }}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
@@ -42,7 +48,7 @@ const emit = defineEmits<{
           :disabled="isSubmitting"
           @click="emit('confirm')"
         >
-          Delete
+          {{ confirmLabel }}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

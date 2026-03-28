@@ -10,17 +10,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { CreateMappedZoneInput, ZoningLayer } from '@/types/zoning.types'
+import type { CreateMappedZoneInput, UpdateMappedZoneInput, ZoningLayer } from '@/types/zoning.types'
 
 const props = withDefaults(
   defineProps<{
     open: boolean
+    mode?: 'add' | 'edit'
     layers: ZoningLayer[]
     isSubmitting?: boolean
-    pointCount: number
+    pointCount?: number
+    initialValue?: UpdateMappedZoneInput
   }>(),
   {
+    mode: 'add',
     isSubmitting: false,
+    pointCount: 0,
+    initialValue: () => ({
+      zoningLayerId: '',
+      name: '',
+      description: '',
+    }),
   },
 )
 
@@ -39,10 +48,21 @@ const canSubmit = computed(() => {
   return form.name.trim().length > 0 && form.zoningLayerId.trim().length > 0 && !props.isSubmitting
 })
 
+const modalTitle = computed(() => (props.mode === 'add' ? 'Save Mapped Zone' : 'Update Mapped Zone'))
+const submitLabel = computed(() => (props.mode === 'add' ? 'Save Zone' : 'Update Zone'))
+
 watch(
-  () => props.open,
-  (isOpen) => {
+  () => [props.open, props.mode, props.initialValue],
+  () => {
+    const isOpen = props.open
     if (!isOpen) {
+      return
+    }
+
+    if (props.mode === 'edit') {
+      form.name = props.initialValue.name
+      form.description = props.initialValue.description
+      form.zoningLayerId = props.initialValue.zoningLayerId || props.layers[0]?.id || ''
       return
     }
 
@@ -50,6 +70,7 @@ watch(
     form.description = ''
     form.zoningLayerId = props.layers[0]?.id ?? ''
   },
+  { immediate: true, deep: true },
 )
 
 watch(
@@ -87,10 +108,10 @@ function submit(): void {
   >
     <Card class="w-full max-w-md py-0">
       <CardHeader class="border-b py-4">
-        <CardTitle class="text-base">Save Mapped Zone</CardTitle>
+        <CardTitle class="text-base">{{ modalTitle }}</CardTitle>
       </CardHeader>
       <CardContent class="space-y-3 p-4">
-        <p class="text-xs text-muted-foreground">{{ pointCount }} polygon points captured.</p>
+        <p v-if="mode === 'add'" class="text-xs text-muted-foreground">{{ pointCount }} polygon points captured.</p>
 
         <div class="space-y-1">
           <label class="text-xs font-medium">Mapped Zone Name</label>
@@ -123,7 +144,7 @@ function submit(): void {
 
         <div class="flex justify-end gap-2">
           <Button variant="outline" @click="emit('close')">Cancel</Button>
-          <Button :disabled="!canSubmit" @click="submit">Save Zone</Button>
+          <Button :disabled="!canSubmit" @click="submit">{{ submitLabel }}</Button>
         </div>
       </CardContent>
     </Card>

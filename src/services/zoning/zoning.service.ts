@@ -4,11 +4,13 @@ import type {
   CreateZoningLayerInput,
   MappedZone,
   MapDrawPoint,
+  UpdateMappedZoneInput,
   UpdateZoningLayerInput,
   ZoningLayer,
 } from '@/types/zoning.types'
 
 const ZONING_LAYERS_TABLE = 'zoning_layers'
+const MAPPED_ZONES_TABLE = 'mapped_zones'
 
 interface MappedZoneRpcRow {
   id: string
@@ -221,6 +223,39 @@ export async function createMappedZone(input: CreateMappedZoneInput): Promise<vo
     p_geojson: geometry,
     p_is_visible: true,
   })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+}
+
+export async function updateMappedZone(
+  zoneId: string,
+  input: UpdateMappedZoneInput,
+): Promise<void> {
+  const supabase = getSupabaseClient()
+  const payload = {
+    zoning_layer_id: input.zoningLayerId,
+    name: input.name.trim(),
+    description: input.description.trim() || null,
+  }
+
+  const { error } = await supabase
+    .from(MAPPED_ZONES_TABLE)
+    .update(payload)
+    .eq('id', zoneId)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+}
+
+export async function deleteMappedZone(zoneId: string): Promise<void> {
+  const supabase = getSupabaseClient()
+  const { error } = await supabase
+    .from(MAPPED_ZONES_TABLE)
+    .delete()
+    .eq('id', zoneId)
 
   if (error) {
     throw new Error(error.message)

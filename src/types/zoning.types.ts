@@ -44,3 +44,9 @@ export interface CreateMappedZoneInput {
   description: string
   points: MapDrawPoint[]
 }
+
+export interface UpdateMappedZoneInput {
+  zoningLayerId: string
+  name: string
+  description: string
+}

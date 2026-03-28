@@ -11,10 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   createMappedZone,
   createZoningLayer,
+  deleteMappedZone,
   deleteZoningLayer,
   listMyMappedZones,
   listMyZoningLayers,
   setZoningLayerActive,
+  updateMappedZone,
   updateZoningLayer,
 } from '@/services/zoning/zoning.service'
 import type {
@@ -22,6 +24,7 @@ import type {
   CreateZoningLayerInput,
   MappedZone,
   MapDrawPoint,
+  UpdateMappedZoneInput,
   UpdateZoningLayerInput,
   ZoningLayer,
 } from '@/types/zoning.types'
@@ -37,6 +40,8 @@ const showMappedZoneModal = ref(false)
 const zoningLayers = ref<ZoningLayer[]>([])
 const mappedZones = ref<MappedZone[]>([])
 const zoningError = ref('')
+
+const isSidebarSubmitting = computed(() => isSavingLayer.value || isSavingMappedZone.value)
 
 const visibleMappedZones = computed(() => {
   const activeLayerIds = new Set(
@@ -211,6 +216,37 @@ async function handleSaveMappedZone(
     isSavingMappedZone.value = false
   }
 }
+
+async function handleUpdateMappedZone(payload: {
+  zoneId: string
+  input: UpdateMappedZoneInput
+}): Promise<void> {
+  isSavingMappedZone.value = true
+  zoningError.value = ''
+
+  try {
+    await updateMappedZone(payload.zoneId, payload.input)
+    await loadMappedZones()
+  } catch (error) {
+    zoningError.value = error instanceof Error ? error.message : 'Failed to update mapped zone.'
+  } finally {
+    isSavingMappedZone.value = false
+  }
+}
+
+async function handleDeleteMappedZone(zoneId: string): Promise<void> {
+  isSavingMappedZone.value = true
+  zoningError.value = ''
+
+  try {
+    await deleteMappedZone(zoneId)
+    await loadMappedZones()
+  } catch (error) {
+    zoningError.value = error instanceof Error ? error.message : 'Failed to delete mapped zone.'
+  } finally {
+    isSavingMappedZone.value = false
+  }
+}
 </script>
 
 <template>
@@ -264,11 +300,13 @@ async function handleSaveMappedZone(
         :is-open="isSidebarOpen"
         :layers="zoningLayers"
         :mapped-zones="mappedZones"
-        :is-submitting="isSavingLayer"
+        :is-submitting="isSidebarSubmitting"
         @close="isSidebarOpen = false"
         @submit-layer="handleCreateLayer"
         @update-layer="handleUpdateLayer"
         @delete-layer="handleDeleteLayer"
+        @update-mapped-zone="handleUpdateMappedZone"
+        @delete-mapped-zone="handleDeleteMappedZone"
         @toggle-layer-visibility="handleToggleLayerVisibility"
       />
 

@@ -5,11 +5,14 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import LayerMappedZonesDropdown from '@/views/admin/admin_map/components/LayerMappedZonesDropdown.vue'
+import MappedZoneFormModal from '@/views/admin/admin_map/components/MappedZoneFormModal.vue'
 import ZoningLayerDeleteDialog from '@/views/admin/admin_map/components/ZoningLayerDeleteDialog.vue'
 import ZoningLayerFormModal from '@/views/admin/admin_map/components/ZoningLayerFormModal.vue'
 import type {
   CreateZoningLayerInput,
   MappedZone,
+  UpdateMappedZoneInput,
   UpdateZoningLayerInput,
   ZoningLayer,
 } from '@/types/zoning.types'
@@ -32,6 +35,8 @@ const emit = defineEmits<{
   (e: 'submit-layer', payload: CreateZoningLayerInput): void
   (e: 'update-layer', payload: { layerId: string; input: UpdateZoningLayerInput }): void
   (e: 'delete-layer', layerId: string): void
+  (e: 'update-mapped-zone', payload: { zoneId: string; input: UpdateMappedZoneInput }): void
+  (e: 'delete-mapped-zone', zoneId: string): void
   (e: 'toggle-layer-visibility', payload: { layerId: string; isActive: boolean }): void
 }>()
 
@@ -40,18 +45,9 @@ const showLayerList = ref(false)
 const showEditLayerModal = ref(false)
 const deletingLayerId = ref<string | null>(null)
 const editingLayerId = ref<string | null>(null)
-const expandedLayerMappedZones = ref<Record<string, boolean>>({})
-
-const mappedZonesByLayerId = computed<Record<string, MappedZone[]>>(() => {
-  return props.mappedZones.reduce<Record<string, MappedZone[]>>((accumulator, zone) => {
-    if (!accumulator[zone.zoning_layer_id]) {
-      accumulator[zone.zoning_layer_id] = []
-    }
-
-    accumulator[zone.zoning_layer_id]?.push(zone)
-    return accumulator
-  }, {})
-})
+const showEditMappedZoneModal = ref(false)
+const deletingMappedZoneId = ref<string | null>(null)
+const editingMappedZoneId = ref<string | null>(null)
 
 const addLayerInitialValue = computed<UpdateZoningLayerInput>(() => ({
   title: '',
@@ -74,6 +70,24 @@ const editLayerInitialValue = computed<UpdateZoningLayerInput>(() => {
     title: activeLayer.title,
     color: activeLayer.color,
     description: activeLayer.description ?? '',
+  }
+})
+
+const editMappedZoneInitialValue = computed<UpdateMappedZoneInput>(() => {
+  const activeZone = props.mappedZones.find((zone) => zone.id === editingMappedZoneId.value)
+
+  if (!activeZone) {
+    return {
+      zoningLayerId: props.layers[0]?.id ?? '',
+      name: '',
+      description: '',
+    }
+  }
+
+  return {
+    zoningLayerId: activeZone.zoning_layer_id,
+    name: activeZone.name,
+    description: activeZone.description ?? '',
   }
 })
 
@@ -150,11 +164,48 @@ function toggleLayerVisibility(layer: ZoningLayer): void {
   })
 }
 
-function toggleLayerMappedZones(layerId: string): void {
-  expandedLayerMappedZones.value = {
-    ...expandedLayerMappedZones.value,
-    [layerId]: !expandedLayerMappedZones.value[layerId],
+function openEditMappedZoneModal(zoneId: string): void {
+  editingMappedZoneId.value = zoneId
+  showEditMappedZoneModal.value = true
+}
+
+function closeEditMappedZoneModal(): void {
+  showEditMappedZoneModal.value = false
+  editingMappedZoneId.value = null
+}
+
+function submitMappedZoneUpdate(input: UpdateMappedZoneInput): void {
+  if (!editingMappedZoneId.value || props.isSubmitting) {
+    return
   }
+
+  emit('update-mapped-zone', {
+    zoneId: editingMappedZoneId.value,
+    input: {
+      zoningLayerId: input.zoningLayerId,
+      name: input.name,
+      description: input.description,
+    },
+  })
+
+  closeEditMappedZoneModal()
+}
+
+function openDeleteMappedZoneDialog(zoneId: string): void {
+  deletingMappedZoneId.value = zoneId
+}
+
+function cancelDeleteMappedZoneDialog(): void {
+  deletingMappedZoneId.value = null
+}
+
+function confirmDeleteMappedZone(): void {
+  if (!deletingMappedZoneId.value || props.isSubmitting) {
+    return
+  }
+
+  emit('delete-mapped-zone', deletingMappedZoneId.value)
+  cancelDeleteMappedZoneDialog()
 }
 </script>
 
@@ -239,42 +290,13 @@ function toggleLayerMappedZones(layerId: string): void {
               </Button>
             </div>
 
-            <button
-              type="button"
-              class="mt-2 flex w-full items-center gap-2 rounded-md border px-2 py-1 text-left"
-              @click="toggleLayerMappedZones(layer.id)"
-            >
-              <p class="text-xs font-medium">Mapped Zones</p>
-              <Badge variant="secondary" class="ml-auto">
-                {{ mappedZonesByLayerId[layer.id]?.length ?? 0 }}
-              </Badge>
-              <ChevronRight
-                class="h-3.5 w-3.5 transition-transform"
-                :class="expandedLayerMappedZones[layer.id] ? 'rotate-90' : ''"
-              />
-            </button>
-
-            <div v-if="expandedLayerMappedZones[layer.id]" class="mt-2 space-y-1">
-              <div
-                v-for="zone in mappedZonesByLayerId[layer.id] ?? []"
-                :key="zone.id"
-                class="rounded-md border p-2"
-              >
-                <p class="truncate text-xs font-medium">{{ zone.name }}</p>
-                <p
-                  v-if="zone.description"
-                  class="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground"
-                >
-                  {{ zone.description }}
-                </p>
-              </div>
-              <p
-                v-if="(mappedZonesByLayerId[layer.id]?.length ?? 0) === 0"
-                class="text-[11px] text-muted-foreground"
-              >
-                No mapped zones under this layer yet.
-              </p>
-            </div>
+            <LayerMappedZonesDropdown
+              :layer-id="layer.id"
+              :mapped-zones="mappedZones"
+              :is-submitting="isSubmitting"
+              @update-mapped-zone="openEditMappedZoneModal"
+              @delete-mapped-zone="openDeleteMappedZoneDialog"
+            />
           </div>
           <p v-if="layers.length === 0" class="text-xs text-muted-foreground">
             No zoning layers yet. Click Add Zoning Layer.
@@ -307,6 +329,26 @@ function toggleLayerMappedZones(layerId: string): void {
       :is-submitting="isSubmitting"
       @cancel="cancelDeleteDialog"
       @confirm="confirmDeleteLayer"
+    />
+
+    <MappedZoneFormModal
+      :open="showEditMappedZoneModal"
+      mode="edit"
+      :layers="layers"
+      :is-submitting="isSubmitting"
+      :initial-value="editMappedZoneInitialValue"
+      @close="closeEditMappedZoneModal"
+      @submit="submitMappedZoneUpdate"
+    />
+
+    <ZoningLayerDeleteDialog
+      :open="Boolean(deletingMappedZoneId)"
+      :is-submitting="isSubmitting"
+      title="Delete Mapped Zone?"
+      description="This action cannot be undone. This will permanently delete the selected mapped zone."
+      confirm-label="Delete"
+      @cancel="cancelDeleteMappedZoneDialog"
+      @confirm="confirmDeleteMappedZone"
     />
   </aside>
 </template>
