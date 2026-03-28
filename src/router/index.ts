@@ -4,6 +4,7 @@ import OuterLayout from '@/layouts/OuterLayout.vue'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 import InnerLayout from '@/layouts/InnerLayout.vue'
 import LandingView from '@/views/landing/LandingView.vue'
+import ReportsView from '@/views/reports/ReportsView.vue'
 import LoginView from '@/views/auth/login/LoginView.vue'
 import RegisterView from '@/views/auth/register/RegisterView.vue'
 import TestView from '@/views/test/TestView.vue'
@@ -49,6 +50,12 @@ const router = createRouter({
           path: '',
           name: 'test',
           component: TestView,
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'reports',
+          name: 'reports',
+          component: ReportsView,
           meta: { requiresAuth: true },
         },
       ],
