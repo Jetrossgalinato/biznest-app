@@ -1,5 +1,20 @@
 import type { Ref } from 'vue'
 import type { BarangayFeatureCollection, GooglePolygonPath } from '@/types/map.types'
+import type { MapDrawPoint, MappedZone } from '@/types/zoning.types'
+import type {
+  GoogleInfoWindowInstance,
+  GoogleLatLng,
+  GoogleMapInstance,
+  GoogleMapsEventListener,
+  GooglePolygonInstance,
+  GooglePolylineInstance,
+  GoogleWindow,
+} from '@/composables/map/googleMapAdapter.types'
+import {
+  delay,
+  initializeGoogleMapInstance,
+  loadGoogleMapsScript,
+} from '@/composables/map/googleMapAdapter.init'
 import {
   buildMapInfoWindowHtml,
   getBarangayLabel,
@@ -15,91 +30,18 @@ interface GoogleAdapterOptions {
   getApiKey: () => string
 }
 
-type GoogleMapInstance = {
-  setCenter: (latLng: { lat: number; lng: number }) => void
-}
-
-type GoogleLatLng = {
-  lat: () => number
-  lng: () => number
-}
-
-type GoogleMapMouseEvent = {
-  latLng?: GoogleLatLng
-}
-
-type GooglePolygonInstance = {
-  setMap: (map: GoogleMapInstance | null) => void
-  addListener?: (
-    eventName: 'click' | 'mouseover' | 'mouseout',
-    handler: (event: GoogleMapMouseEvent) => void,
-  ) => void
-}
-
-type GoogleInfoWindowInstance = {
-  setContent: (content: string) => void
-  setPosition: (position: GooglePolygonPath) => void
-  open: (options: { map: GoogleMapInstance }) => void
-  close: () => void
-}
-
-type GoogleMapCtor = new (
-  element: HTMLElement,
-  options: { center: { lat: number; lng: number }; zoom: number; mapId?: string },
-) => GoogleMapInstance
-
-type AdvancedMarkerLibrary = {
-  AdvancedMarkerElement: new (options: {
-    position: { lat: number; lng: number }
-    map: GoogleMapInstance
-    title?: string
-  }) => unknown
-}
-
-type LegacyMarkerCtor = new (options: {
-  position: { lat: number; lng: number }
-  map: GoogleMapInstance
-  title?: string
-}) => unknown
-
-type GoogleMapsAPI = {
-  Map?: GoogleMapCtor
-  Marker?: LegacyMarkerCtor
-  Polygon?: new (options: {
-    paths: GooglePolygonPath[][]
-    strokeColor: string
-    strokeOpacity: number
-    strokeWeight: number
-    fillColor: string
-    fillOpacity: number
-    map: GoogleMapInstance
-  }) => GooglePolygonInstance
-  InfoWindow?: new () => GoogleInfoWindowInstance
-  importLibrary?: (name: string) => Promise<unknown>
-  marker?: {
-    AdvancedMarkerElement?: AdvancedMarkerLibrary['AdvancedMarkerElement']
-  }
-}
-
-type MapsLibrary = {
-  Map: GoogleMapCtor
-}
-
-type GoogleWindow = Window & {
-  google?: {
-    maps?: GoogleMapsAPI
-  }
-}
+type MapClickHandler = (point: MapDrawPoint) => void
 
 export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
   let googleMapsLoader: Promise<void> | null = null
   let googleMap: GoogleMapInstance | null = null
   let googleBarangayPolygons: GooglePolygonInstance[] = []
+  let googleMappedZonePolygons: GooglePolygonInstance[] = []
   let googleBarangayInfoWindow: GoogleInfoWindowInstance | null = null
-
-  function delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms))
-  }
+  let googleDrawPreviewPolygon: GooglePolygonInstance | null = null
+  let googleDrawPreviewPolyline: GooglePolylineInstance | null = null
+  let googleMapClickListener: GoogleMapsEventListener | null = null
+  let mapClickHandler: MapClickHandler | null = null
 
   function destroyGoogleBarangayPolygons(): void {
     googleBarangayPolygons.forEach((polygon) => polygon.setMap(null))
@@ -110,8 +52,47 @@ export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
     }
   }
 
+  function destroyGoogleMappedZonePolygons(): void {
+    googleMappedZonePolygons.forEach((polygon) => polygon.setMap(null))
+    googleMappedZonePolygons = []
+  }
+
+  function destroyGoogleDrawPreview(): void {
+    googleDrawPreviewPolygon?.setMap(null)
+    googleDrawPreviewPolygon = null
+    googleDrawPreviewPolyline?.setMap(null)
+    googleDrawPreviewPolyline = null
+  }
+
+  function clearGoogleMapClickListener(): void {
+    googleMapClickListener?.remove()
+    googleMapClickListener = null
+  }
+
+  function syncGoogleMapClickListener(): void {
+    clearGoogleMapClickListener()
+
+    if (!googleMap || !googleMap.addListener || !mapClickHandler) {
+      return
+    }
+
+    googleMapClickListener = googleMap.addListener('click', (event) => {
+      if (!event.latLng) {
+        return
+      }
+
+      mapClickHandler?.({
+        lat: event.latLng.lat(),
+        lng: event.latLng.lng(),
+      })
+    })
+  }
+
   function destroy(): void {
     destroyGoogleBarangayPolygons()
+    destroyGoogleMappedZonePolygons()
+    destroyGoogleDrawPreview()
+    clearGoogleMapClickListener()
     googleMap = null
   }
 
@@ -187,110 +168,98 @@ export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
     })
   }
 
-  function loadGoogleMaps(): Promise<void> {
-    const googleWindow = window as GoogleWindow
-    const resolvedGoogleMapsApiKey = options.getApiKey()
+  async function renderMappedZones(mappedZones: MappedZone[]): Promise<void> {
+    destroyGoogleMappedZonePolygons()
 
-    if (!resolvedGoogleMapsApiKey) {
-      return Promise.reject(new Error('Missing VITE_GOOGLE_MAPS_API_KEY'))
+    if (!googleMap || mappedZones.length === 0) {
+      return
     }
 
-    if (googleWindow.google?.maps) {
-      return Promise.resolve()
+    const googleMaps = (window as GoogleWindow).google?.maps
+    if (!googleMaps?.Polygon) {
+      return
     }
 
-    if (googleMapsLoader) {
-      return googleMapsLoader
-    }
+    const PolygonCtor = googleMaps.Polygon
 
-    googleMapsLoader = new Promise((resolve, reject) => {
-      const existingScript = document.getElementById('google-maps-sdk') as HTMLScriptElement | null
-
-      if (existingScript) {
-        existingScript.addEventListener('load', () => resolve(), { once: true })
-        existingScript.addEventListener(
-          'error',
-          () => reject(new Error('Google Maps failed to load')),
-          { once: true },
-        )
+    mappedZones.forEach((zone) => {
+      if (zone.points.length < 3) {
         return
       }
 
-      const script = document.createElement('script')
-      script.id = 'google-maps-sdk'
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${resolvedGoogleMapsApiKey}&loading=async&libraries=marker&v=weekly`
-      script.async = true
-      script.defer = true
-      script.onload = () => resolve()
-      script.onerror = () => reject(new Error('Google Maps failed to load'))
-      document.head.appendChild(script)
+      const polygon = new PolygonCtor({
+        paths: [zone.points.map((point) => ({ lat: point.lat, lng: point.lng }))],
+        strokeColor: zone.zoning_color,
+        strokeOpacity: 0.95,
+        strokeWeight: 2,
+        fillColor: zone.zoning_color,
+        fillOpacity: 0.22,
+        map: googleMap as GoogleMapInstance,
+      })
+
+      googleMappedZonePolygons.push(polygon)
     })
+  }
+
+  async function renderDrawPreview(drawPoints: MapDrawPoint[]): Promise<void> {
+    destroyGoogleDrawPreview()
+
+    if (!googleMap || drawPoints.length < 2) {
+      return
+    }
+
+    const googleMaps = (window as GoogleWindow).google?.maps
+    if (!googleMaps) {
+      return
+    }
+
+    if (drawPoints.length >= 3 && googleMaps.Polygon) {
+      googleDrawPreviewPolygon = new googleMaps.Polygon({
+        paths: [drawPoints.map((point) => ({ lat: point.lat, lng: point.lng }))],
+        strokeColor: '#2563eb',
+        strokeOpacity: 1,
+        strokeWeight: 2,
+        fillColor: '#2563eb',
+        fillOpacity: 0.16,
+        map: googleMap as GoogleMapInstance,
+      })
+      return
+    }
+
+    if (googleMaps.Polyline) {
+      googleDrawPreviewPolyline = new googleMaps.Polyline({
+        path: drawPoints.map((point) => ({ lat: point.lat, lng: point.lng })),
+        strokeColor: '#2563eb',
+        strokeOpacity: 1,
+        strokeWeight: 2,
+        map: googleMap as GoogleMapInstance,
+      })
+    }
+  }
+
+  function setMapClickHandler(handler: MapClickHandler | null): void {
+    mapClickHandler = handler
+    syncGoogleMapClickListener()
+  }
+
+  function loadGoogleMaps(): Promise<void> {
+    const resolvedGoogleMapsApiKey = options.getApiKey()
+
+    googleMapsLoader = loadGoogleMapsScript(resolvedGoogleMapsApiKey, googleMapsLoader)
 
     return googleMapsLoader
   }
 
   async function initializeMapInstance(): Promise<boolean> {
-    if (!options.containerRef.value) {
-      return false
-    }
-
-    const googleMaps = (window as GoogleWindow).google?.maps
-
-    if (!googleMaps) {
-      return false
-    }
-
-    let MapCtor: GoogleMapCtor | undefined
-    let AdvancedMarkerElement: AdvancedMarkerLibrary['AdvancedMarkerElement'] | undefined
-
-    if (typeof googleMaps.Map === 'function') {
-      MapCtor = googleMaps.Map
-    }
-
-    if (!MapCtor && typeof googleMaps.importLibrary === 'function') {
-      const mapsLibrary = (await googleMaps.importLibrary('maps')) as unknown as MapsLibrary
-      if (typeof mapsLibrary.Map === 'function') {
-        MapCtor = mapsLibrary.Map
-      }
-    }
-
-    if (typeof googleMaps.importLibrary === 'function') {
-      const markerLibrary = (await googleMaps.importLibrary('marker')) as unknown as AdvancedMarkerLibrary
-      AdvancedMarkerElement = markerLibrary.AdvancedMarkerElement
-    } else {
-      AdvancedMarkerElement = googleMaps.marker?.AdvancedMarkerElement
-    }
-
-    if (!MapCtor) {
-      return false
-    }
-
-    const map = new MapCtor(options.containerRef.value, {
+    return initializeGoogleMapInstance({
+      container: options.containerRef.value,
       center: options.center,
-      zoom: 12,
       mapId: options.mapId,
+      onMapReady: (map) => {
+        googleMap = map
+        syncGoogleMapClickListener()
+      },
     })
-    googleMap = map
-
-    if (AdvancedMarkerElement) {
-      new AdvancedMarkerElement({
-        position: options.center,
-        map,
-        title: 'Butuan City',
-      })
-      return true
-    }
-
-    if (googleMaps.Marker) {
-      new googleMaps.Marker({
-        position: options.center,
-        map,
-        title: 'Butuan City',
-      })
-      return true
-    }
-
-    return true
   }
 
   async function init(): Promise<void> {
@@ -317,5 +286,8 @@ export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
     init,
     destroy,
     renderBarangayBorders,
+    renderMappedZones,
+    renderDrawPreview,
+    setMapClickHandler,
   }
 }

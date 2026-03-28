@@ -1,0 +1,96 @@
+import type { GooglePolygonPath } from '@/types/map.types'
+
+export interface GoogleMapInstance {
+  setCenter: (latLng: { lat: number; lng: number }) => void
+  addListener?: (
+    eventName: 'click',
+    handler: (event: GoogleMapMouseEvent) => void,
+  ) => GoogleMapsEventListener
+}
+
+export interface GoogleLatLng {
+  lat: () => number
+  lng: () => number
+}
+
+export interface GoogleMapMouseEvent {
+  latLng?: GoogleLatLng
+}
+
+export interface GoogleMapsEventListener {
+  remove: () => void
+}
+
+export interface GooglePolygonInstance {
+  setMap: (map: GoogleMapInstance | null) => void
+  addListener?: (
+    eventName: 'click' | 'mouseover' | 'mouseout',
+    handler: (event: GoogleMapMouseEvent) => void,
+  ) => void
+}
+
+export interface GooglePolylineInstance {
+  setMap: (map: GoogleMapInstance | null) => void
+}
+
+export interface GoogleInfoWindowInstance {
+  setContent: (content: string) => void
+  setPosition: (position: GooglePolygonPath) => void
+  open: (options: { map: GoogleMapInstance }) => void
+  close: () => void
+}
+
+export type GoogleMapCtor = new (
+  element: HTMLElement,
+  options: { center: { lat: number; lng: number }; zoom: number; mapId?: string },
+) => GoogleMapInstance
+
+export interface AdvancedMarkerLibrary {
+  AdvancedMarkerElement: new (options: {
+    position: { lat: number; lng: number }
+    map: GoogleMapInstance
+    title?: string
+  }) => unknown
+}
+
+export type LegacyMarkerCtor = new (options: {
+  position: { lat: number; lng: number }
+  map: GoogleMapInstance
+  title?: string
+}) => unknown
+
+export interface GoogleMapsAPI {
+  Map?: GoogleMapCtor
+  Marker?: LegacyMarkerCtor
+  Polygon?: new (options: {
+    paths: GooglePolygonPath[][]
+    strokeColor: string
+    strokeOpacity: number
+    strokeWeight: number
+    fillColor: string
+    fillOpacity: number
+    map: GoogleMapInstance
+  }) => GooglePolygonInstance
+  Polyline?: new (options: {
+    path: GooglePolygonPath[]
+    strokeColor: string
+    strokeOpacity: number
+    strokeWeight: number
+    map: GoogleMapInstance
+  }) => GooglePolylineInstance
+  InfoWindow?: new () => GoogleInfoWindowInstance
+  importLibrary?: (name: string) => Promise<unknown>
+  marker?: {
+    AdvancedMarkerElement?: AdvancedMarkerLibrary['AdvancedMarkerElement']
+  }
+}
+
+export interface MapsLibrary {
+  Map: GoogleMapCtor
+}
+
+export type GoogleWindow = Window & {
+  google?: {
+    maps?: GoogleMapsAPI
+  }
+}

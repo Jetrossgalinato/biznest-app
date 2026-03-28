@@ -3,6 +3,7 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { BarangayFeatureCollection, MapProvider } from '@/types/map.types'
+import type { MapDrawPoint, MappedZone } from '@/types/zoning.types'
 import { useGoogleMapAdapter } from '@/composables/map/useGoogleMapAdapter'
 import { useLeafletMapAdapter } from '@/composables/map/useLeafletMapAdapter'
 import 'leaflet/dist/leaflet.css'
@@ -16,13 +17,23 @@ const props = withDefaults(
     provider?: MapProvider
     showBarangayBorders?: boolean
     barangayBorders?: BarangayFeatureCollection | null
+    mappedZones?: MappedZone[]
+    drawPoints?: MapDrawPoint[]
+    isDrawMode?: boolean
   }>(),
   {
     provider: 'leaflet',
     showBarangayBorders: false,
     barangayBorders: null,
+    mappedZones: () => [],
+    drawPoints: () => [],
+    isDrawMode: false,
   },
 )
+
+const emit = defineEmits<{
+  (e: 'map-click', point: MapDrawPoint): void
+}>()
 
 const mapContainer = ref<HTMLDivElement | null>(null)
 const mapError = ref('')
@@ -82,6 +93,29 @@ watch(
   { deep: true },
 )
 
+watch(
+  () => props.mappedZones,
+  async () => {
+    await renderMappedZonesForActiveProvider()
+  },
+  { deep: true },
+)
+
+watch(
+  () => props.drawPoints,
+  async () => {
+    await renderDrawPreviewForActiveProvider()
+  },
+  { deep: true },
+)
+
+watch(
+  () => props.isDrawMode,
+  () => {
+    syncMapClickHandlerForActiveProvider()
+  },
+)
+
 function destroyProviderMaps(): void {
   leafletMapAdapter.destroy()
   googleMapAdapter.destroy()
@@ -102,6 +136,37 @@ async function renderBarangayBordersForActiveProvider(): Promise<void> {
   )
 }
 
+async function renderMappedZonesForActiveProvider(): Promise<void> {
+  if (props.provider === 'leaflet') {
+    await leafletMapAdapter.renderMappedZones(props.mappedZones)
+    return
+  }
+
+  await googleMapAdapter.renderMappedZones(props.mappedZones)
+}
+
+async function renderDrawPreviewForActiveProvider(): Promise<void> {
+  if (props.provider === 'leaflet') {
+    await leafletMapAdapter.renderDrawPreview(props.drawPoints)
+    return
+  }
+
+  await googleMapAdapter.renderDrawPreview(props.drawPoints)
+}
+
+function syncMapClickHandlerForActiveProvider(): void {
+  const handler = props.isDrawMode ? (point: MapDrawPoint) => emit('map-click', point) : null
+
+  if (props.provider === 'leaflet') {
+    leafletMapAdapter.setMapClickHandler(handler)
+    googleMapAdapter.setMapClickHandler(null)
+    return
+  }
+
+  googleMapAdapter.setMapClickHandler(handler)
+  leafletMapAdapter.setMapClickHandler(null)
+}
+
 async function initProviderMap() {
   mapError.value = ''
 
@@ -112,12 +177,18 @@ async function initProviderMap() {
 
     await leafletMapAdapter.init()
     await renderBarangayBordersForActiveProvider()
+    await renderMappedZonesForActiveProvider()
+    await renderDrawPreviewForActiveProvider()
+    syncMapClickHandlerForActiveProvider()
     return
   }
 
   try {
     await googleMapAdapter.init()
     await renderBarangayBordersForActiveProvider()
+    await renderMappedZonesForActiveProvider()
+    await renderDrawPreviewForActiveProvider()
+    syncMapClickHandlerForActiveProvider()
   } catch (error) {
     console.warn('Google Maps unavailable', error)
 

@@ -1,0 +1,123 @@
+import type {
+  AdvancedMarkerLibrary,
+  GoogleMapCtor,
+  GoogleMapInstance,
+  GoogleWindow,
+  MapsLibrary,
+} from '@/composables/map/googleMapAdapter.types'
+
+export function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+export function loadGoogleMapsScript(
+  resolvedGoogleMapsApiKey: string,
+  existingLoader: Promise<void> | null,
+): Promise<void> {
+  const googleWindow = window as GoogleWindow
+
+  if (!resolvedGoogleMapsApiKey) {
+    return Promise.reject(new Error('Missing VITE_GOOGLE_MAPS_API_KEY'))
+  }
+
+  if (googleWindow.google?.maps) {
+    return Promise.resolve()
+  }
+
+  if (existingLoader) {
+    return existingLoader
+  }
+
+  return new Promise((resolve, reject) => {
+    const existingScript = document.getElementById('google-maps-sdk') as HTMLScriptElement | null
+
+    if (existingScript) {
+      existingScript.addEventListener('load', () => resolve(), { once: true })
+      existingScript.addEventListener(
+        'error',
+        () => reject(new Error('Google Maps failed to load')),
+        { once: true },
+      )
+      return
+    }
+
+    const script = document.createElement('script')
+    script.id = 'google-maps-sdk'
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${resolvedGoogleMapsApiKey}&loading=async&libraries=marker&v=weekly`
+    script.async = true
+    script.defer = true
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error('Google Maps failed to load'))
+    document.head.appendChild(script)
+  })
+}
+
+export async function initializeGoogleMapInstance(options: {
+  container: HTMLElement | null
+  center: { lat: number; lng: number }
+  mapId?: string
+  onMapReady: (map: GoogleMapInstance) => void
+}): Promise<boolean> {
+  if (!options.container) {
+    return false
+  }
+
+  const googleMaps = (window as GoogleWindow).google?.maps
+
+  if (!googleMaps) {
+    return false
+  }
+
+  let MapCtor: GoogleMapCtor | undefined
+  let AdvancedMarkerElement: AdvancedMarkerLibrary['AdvancedMarkerElement'] | undefined
+
+  if (typeof googleMaps.Map === 'function') {
+    MapCtor = googleMaps.Map
+  }
+
+  if (!MapCtor && typeof googleMaps.importLibrary === 'function') {
+    const mapsLibrary = (await googleMaps.importLibrary('maps')) as unknown as MapsLibrary
+    if (typeof mapsLibrary.Map === 'function') {
+      MapCtor = mapsLibrary.Map
+    }
+  }
+
+  if (typeof googleMaps.importLibrary === 'function') {
+    const markerLibrary = (await googleMaps.importLibrary('marker')) as unknown as AdvancedMarkerLibrary
+    AdvancedMarkerElement = markerLibrary.AdvancedMarkerElement
+  } else {
+    AdvancedMarkerElement = googleMaps.marker?.AdvancedMarkerElement
+  }
+
+  if (!MapCtor) {
+    return false
+  }
+
+  const map = new MapCtor(options.container, {
+    center: options.center,
+    zoom: 12,
+    mapId: options.mapId,
+  })
+
+  options.onMapReady(map)
+
+  if (AdvancedMarkerElement) {
+    new AdvancedMarkerElement({
+      position: options.center,
+      map,
+      title: 'Butuan City',
+    })
+    return true
+  }
+
+  if (googleMaps.Marker) {
+    new googleMaps.Marker({
+      position: options.center,
+      map,
+      title: 'Butuan City',
+    })
+    return true
+  }
+
+  return true
+}

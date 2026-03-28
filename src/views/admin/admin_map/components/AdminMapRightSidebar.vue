@@ -9,6 +9,7 @@ import ZoningLayerDeleteDialog from '@/views/admin/admin_map/components/ZoningLa
 import ZoningLayerFormModal from '@/views/admin/admin_map/components/ZoningLayerFormModal.vue'
 import type {
   CreateZoningLayerInput,
+  MappedZone,
   UpdateZoningLayerInput,
   ZoningLayer,
 } from '@/types/zoning.types'
@@ -17,9 +18,11 @@ const props = withDefaults(
   defineProps<{
     isOpen: boolean
     layers: ZoningLayer[]
+    mappedZones?: MappedZone[]
     isSubmitting?: boolean
   }>(),
   {
+    mappedZones: () => [],
     isSubmitting: false,
   },
 )
@@ -33,6 +36,7 @@ const emit = defineEmits<{
 
 const showAddLayerModal = ref(false)
 const showLayerList = ref(false)
+const showMappedZoneList = ref(false)
 const showEditLayerModal = ref(false)
 const deletingLayerId = ref<string | null>(null)
 const editingLayerId = ref<string | null>(null)
@@ -154,9 +158,7 @@ function confirmDeleteLayer(): void {
             />
           </button>
 
-          <p v-if="!showLayerList" class="text-xs text-muted-foreground">
-            Click to view all zoning layers.
-          </p>
+
 
           <div v-if="showLayerList" class="space-y-2">
           <Button class="w-full" @click="openAddLayerModal">
@@ -203,6 +205,45 @@ function confirmDeleteLayer(): void {
           <p v-if="layers.length === 0" class="text-xs text-muted-foreground">
             No zoning layers yet. Click Add Zoning Layer.
           </p>
+          </div>
+        </section>
+
+        <Separator />
+
+        <section class="space-y-2">
+          <button
+            type="button"
+            class="flex w-full items-center gap-2 rounded-md px-1 py-1 text-left"
+            @click="showMappedZoneList = !showMappedZoneList"
+          >
+            <p class="text-sm font-semibold">Mapped Zones</p>
+            <Badge variant="secondary" class="ml-auto">{{ mappedZones.length }}</Badge>
+            <ChevronRight
+              class="h-4 w-4 transition-transform"
+              :class="showMappedZoneList ? 'rotate-90' : ''"
+            />
+          </button>
+
+
+
+          <div v-if="showMappedZoneList" class="space-y-2">
+            <div
+              v-for="zone in mappedZones"
+              :key="zone.id"
+              class="rounded-lg border p-2"
+            >
+              <div class="flex items-center gap-2">
+                <span
+                  class="h-3 w-3 rounded-sm border"
+                  :style="{ backgroundColor: zone.zoning_color }"
+                />
+                <p class="flex-1 truncate text-sm font-medium">{{ zone.name }}</p>
+              </div>
+              <p class="mt-1 text-xs text-muted-foreground">{{ zone.zoning_title }}</p>
+            </div>
+            <p v-if="mappedZones.length === 0" class="text-xs text-muted-foreground">
+              No mapped zones yet. Use Draw Zone to create one.
+            </p>
           </div>
         </section>
       </CardContent>

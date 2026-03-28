@@ -1,0 +1,116 @@
+<script setup lang="ts">
+import { computed, reactive, watch } from 'vue'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import type { CreateMappedZoneInput, ZoningLayer } from '@/types/zoning.types'
+
+const props = withDefaults(
+  defineProps<{
+    open: boolean
+    layers: ZoningLayer[]
+    isSubmitting?: boolean
+    pointCount: number
+  }>(),
+  {
+    isSubmitting: false,
+  },
+)
+
+const emit = defineEmits<{
+  (e: 'close'): void
+  (e: 'submit', payload: Omit<CreateMappedZoneInput, 'points'>): void
+}>()
+
+const form = reactive({
+  name: '',
+  zoningLayerId: '',
+  description: '',
+})
+
+const canSubmit = computed(() => {
+  return form.name.trim().length > 0 && form.zoningLayerId.trim().length > 0 && !props.isSubmitting
+})
+
+watch(
+  () => props.open,
+  (isOpen) => {
+    if (!isOpen) {
+      return
+    }
+
+    form.name = ''
+    form.description = ''
+    form.zoningLayerId = props.layers[0]?.id ?? ''
+  },
+)
+
+function submit(): void {
+  if (!canSubmit.value) {
+    return
+  }
+
+  emit('submit', {
+    name: form.name.trim(),
+    zoningLayerId: form.zoningLayerId,
+    description: form.description.trim(),
+  })
+}
+</script>
+
+<template>
+  <div
+    v-if="open"
+    class="fixed inset-0 z-10000 flex items-center justify-center bg-black/40 p-4"
+  >
+    <Card class="w-full max-w-md py-0">
+      <CardHeader class="border-b py-4">
+        <CardTitle class="text-base">Save Mapped Zone</CardTitle>
+      </CardHeader>
+      <CardContent class="space-y-3 p-4">
+        <p class="text-xs text-muted-foreground">{{ pointCount }} polygon points captured.</p>
+
+        <div class="space-y-1">
+          <label class="text-xs font-medium">Mapped Zone Name</label>
+          <Input v-model="form.name" placeholder="e.g. North Trade Zone" />
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-xs font-medium">Zoning Type</label>
+          <Select v-model="form.zoningLayerId">
+            <SelectTrigger>
+              <SelectValue placeholder="Select zoning layer" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="layer in layers" :key="layer.id" :value="layer.id">
+                {{ layer.title }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-xs font-medium">Description</label>
+          <textarea
+            v-model="form.description"
+            rows="3"
+            class="border-input focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-md border bg-transparent px-3 py-2 text-sm outline-none focus-visible:ring-[3px]"
+            placeholder="Describe this mapped zone"
+          />
+        </div>
+
+        <div class="flex justify-end gap-2">
+          <Button variant="outline" @click="emit('close')">Cancel</Button>
+          <Button :disabled="!canSubmit" @click="submit">Save Zone</Button>
+        </div>
+      </CardContent>
+    </Card>
+  </div>
+</template>
