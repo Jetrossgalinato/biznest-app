@@ -18,6 +18,7 @@ const props = withDefaults(
     showBarangayBorders?: boolean
     barangayBorders?: BarangayFeatureCollection | null
     mappedZones?: MappedZone[]
+    selectedMappedZoneId?: string | null
     drawPoints?: MapDrawPoint[]
     isDrawMode?: boolean
   }>(),
@@ -26,6 +27,7 @@ const props = withDefaults(
     showBarangayBorders: false,
     barangayBorders: null,
     mappedZones: () => [],
+    selectedMappedZoneId: null,
     drawPoints: () => [],
     isDrawMode: false,
   },
@@ -110,6 +112,14 @@ watch(
 )
 
 watch(
+  () => [props.selectedMappedZoneId, props.mappedZones],
+  async () => {
+    await focusSelectedMappedZoneForActiveProvider()
+  },
+  { deep: true },
+)
+
+watch(
   () => props.isDrawMode,
   () => {
     syncMapClickHandlerForActiveProvider()
@@ -154,6 +164,24 @@ async function renderDrawPreviewForActiveProvider(): Promise<void> {
   await googleMapAdapter.renderDrawPreview(props.drawPoints)
 }
 
+async function focusSelectedMappedZoneForActiveProvider(): Promise<void> {
+  if (!props.selectedMappedZoneId) {
+    return
+  }
+
+  const selectedZone = props.mappedZones.find((zone) => zone.id === props.selectedMappedZoneId)
+  if (!selectedZone || selectedZone.points.length === 0) {
+    return
+  }
+
+  if (props.provider === 'leaflet') {
+    await leafletMapAdapter.focusOnZone(selectedZone.points)
+    return
+  }
+
+  await googleMapAdapter.focusOnZone(selectedZone.points)
+}
+
 function syncMapClickHandlerForActiveProvider(): void {
   const handler = props.isDrawMode ? (point: MapDrawPoint) => emit('map-click', point) : null
 
@@ -179,6 +207,7 @@ async function initProviderMap() {
     await renderBarangayBordersForActiveProvider()
     await renderMappedZonesForActiveProvider()
     await renderDrawPreviewForActiveProvider()
+    await focusSelectedMappedZoneForActiveProvider()
     syncMapClickHandlerForActiveProvider()
     return
   }
@@ -188,6 +217,7 @@ async function initProviderMap() {
     await renderBarangayBordersForActiveProvider()
     await renderMappedZonesForActiveProvider()
     await renderDrawPreviewForActiveProvider()
+    await focusSelectedMappedZoneForActiveProvider()
     syncMapClickHandlerForActiveProvider()
   } catch (error) {
     console.warn('Google Maps unavailable', error)

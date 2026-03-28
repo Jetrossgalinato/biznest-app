@@ -2,6 +2,7 @@ import type { GooglePolygonPath } from '@/types/map.types'
 
 export interface GoogleMapInstance {
   setCenter: (latLng: { lat: number; lng: number }) => void
+  setZoom?: (zoom: number) => void
   addListener?: (
     eventName: 'click',
     handler: (event: GoogleMapMouseEvent) => void,

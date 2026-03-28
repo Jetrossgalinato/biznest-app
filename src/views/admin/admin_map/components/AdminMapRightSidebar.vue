@@ -37,6 +37,7 @@ const emit = defineEmits<{
   (e: 'delete-layer', layerId: string): void
   (e: 'update-mapped-zone', payload: { zoneId: string; input: UpdateMappedZoneInput }): void
   (e: 'delete-mapped-zone', zoneId: string): void
+  (e: 'focus-mapped-zone', zoneId: string): void
   (e: 'toggle-layer-visibility', payload: { layerId: string; isActive: boolean }): void
 }>()
 
@@ -207,6 +208,10 @@ function confirmDeleteMappedZone(): void {
   emit('delete-mapped-zone', deletingMappedZoneId.value)
   cancelDeleteMappedZoneDialog()
 }
+
+function focusMappedZone(zoneId: string): void {
+  emit('focus-mapped-zone', zoneId)
+}
 </script>
 
 <template>
@@ -296,6 +301,7 @@ function confirmDeleteMappedZone(): void {
               :is-submitting="isSubmitting"
               @update-mapped-zone="openEditMappedZoneModal"
               @delete-mapped-zone="openDeleteMappedZoneDialog"
+              @select-mapped-zone="focusMappedZone"
             />
           </div>
           <p v-if="layers.length === 0" class="text-xs text-muted-foreground">

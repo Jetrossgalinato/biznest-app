@@ -242,6 +242,28 @@ export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
     syncGoogleMapClickListener()
   }
 
+  async function focusOnZone(points: MapDrawPoint[]): Promise<void> {
+    if (!googleMap || points.length === 0) {
+      return
+    }
+
+    const center = points.reduce(
+      (accumulator, point) => {
+        return {
+          lat: accumulator.lat + point.lat,
+          lng: accumulator.lng + point.lng,
+        }
+      },
+      { lat: 0, lng: 0 },
+    )
+
+    const lat = center.lat / points.length
+    const lng = center.lng / points.length
+
+    googleMap.setCenter({ lat, lng })
+    googleMap.setZoom?.(16)
+  }
+
   function loadGoogleMaps(): Promise<void> {
     const resolvedGoogleMapsApiKey = options.getApiKey()
 
@@ -289,5 +311,6 @@ export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
     renderMappedZones,
     renderDrawPreview,
     setMapClickHandler,
+    focusOnZone,
   }
 }

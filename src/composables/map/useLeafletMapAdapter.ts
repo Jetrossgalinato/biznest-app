@@ -227,6 +227,26 @@ export function useLeafletMapAdapter(options: LeafletAdapterOptions) {
     leafletMap.on('click', leafletClickListener)
   }
 
+  async function focusOnZone(points: MapDrawPoint[]): Promise<void> {
+    if (!leafletMap || points.length === 0) {
+      return
+    }
+
+    const center = points.reduce(
+      (accumulator, point) => {
+        return {
+          lat: accumulator.lat + point.lat,
+          lng: accumulator.lng + point.lng,
+        }
+      },
+      { lat: 0, lng: 0 },
+    )
+
+    const lat = center.lat / points.length
+    const lng = center.lng / points.length
+    leafletMap.setView([lat, lng], 16)
+  }
+
   return {
     init,
     destroy,
@@ -234,5 +254,6 @@ export function useLeafletMapAdapter(options: LeafletAdapterOptions) {
     renderMappedZones,
     renderDrawPreview,
     setMapClickHandler,
+    focusOnZone,
   }
 }

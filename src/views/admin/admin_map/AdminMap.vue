@@ -37,6 +37,7 @@ const isSavingMappedZone = ref(false)
 const isDrawMode = ref(false)
 const drawPoints = ref<MapDrawPoint[]>([])
 const showMappedZoneModal = ref(false)
+const selectedMappedZoneId = ref<string | null>(null)
 const zoningLayers = ref<ZoningLayer[]>([])
 const mappedZones = ref<MappedZone[]>([])
 const zoningError = ref('')
@@ -247,6 +248,10 @@ async function handleDeleteMappedZone(zoneId: string): Promise<void> {
     isSavingMappedZone.value = false
   }
 }
+
+function handleFocusMappedZone(zoneId: string): void {
+  selectedMappedZoneId.value = zoneId
+}
 </script>
 
 <template>
@@ -282,6 +287,7 @@ async function handleDeleteMappedZone(zoneId: string): Promise<void> {
         :show-barangay-borders="showBarangayBorders"
         :barangay-borders="barangayBorders"
         :mapped-zones="visibleMappedZones"
+        :selected-mapped-zone-id="selectedMappedZoneId"
         :draw-points="drawPoints"
         :is-draw-mode="isDrawMode"
         @map-click="handleMapClick"
@@ -307,6 +313,7 @@ async function handleDeleteMappedZone(zoneId: string): Promise<void> {
         @delete-layer="handleDeleteLayer"
         @update-mapped-zone="handleUpdateMappedZone"
         @delete-mapped-zone="handleDeleteMappedZone"
+        @focus-mapped-zone="handleFocusMappedZone"
         @toggle-layer-visibility="handleToggleLayerVisibility"
       />
 

@@ -20,6 +20,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'update-mapped-zone', zoneId: string): void
   (e: 'delete-mapped-zone', zoneId: string): void
+  (e: 'select-mapped-zone', zoneId: string): void
 }>()
 
 const isExpanded = ref(false)
@@ -54,7 +55,8 @@ function toggleExpanded(): void {
       <div
         v-for="zone in zones"
         :key="zone.id"
-        class="rounded-md border p-2"
+        class="cursor-pointer rounded-md border p-2 transition-colors hover:bg-muted/50"
+        @click="emit('select-mapped-zone', zone.id)"
       >
         <div class="flex items-center gap-1">
           <p class="flex-1 truncate text-xs font-medium">{{ zone.name }}</p>
