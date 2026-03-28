@@ -3,6 +3,15 @@ import { defineStore } from 'pinia'
 import type { Tab, TableRow } from '@/types/reports.types'
 import { getSupabaseClient } from '@/services/supabase.client'
 
+// Define constant tab labels
+const CONSTANT_TABS = [
+  'All Reports',
+  'Business Suitability',
+  'Nearest Suppliers',
+  'Top 5 Businesses',
+  'Available Spaces',
+]
+
 export const useReportsStore = defineStore('reports', () => {
   // 1. State
   const tabs = ref<Tab[]>([])
@@ -30,20 +39,15 @@ export const useReportsStore = defineStore('reports', () => {
         throw fetchError
       }
 
-      // Transform the fetched data into Tab[] structure
-      // Group reports by their label field to create multiple tabs
       if (data && data.length > 0) {
+        // Transform the fetched data into Tab[] structure
+        const allReportsData: TableRow[] = []
         const groupedData: { [key: string]: TableRow[] } = {}
 
-        // Group data by label
+        // First pass: collect all data and group by label
         for (let i = 0; i < data.length; i++) {
           const row = data[i]
-          const label: string = row.label || 'Uncategorized'
-
-          if (!groupedData[label]) {
-            groupedData[label] = []
-          }
-
+          
           const tableRow: TableRow = {
             businessOwner: row.businessowner || '',
             contactNumber: row.contactnumber || '',
@@ -51,21 +55,39 @@ export const useReportsStore = defineStore('reports', () => {
             zoningClassification: row.zoningclassification || '',
             geotag: row.geotag || '',
           }
+          
+          // Add to all reports
+          allReportsData.push(tableRow)
+          
+          // Group by label
+          const label: string = row.label || 'Uncategorized'
+          if (!groupedData[label]) {
+            groupedData[label] = []
+          }
           groupedData[label].push(tableRow)
         }
 
-        // Convert grouped data to tabs
+        // Build tabs array with constant order
         tabs.value = []
-        const labelKeys: string[] = Object.keys(groupedData)
-        for (let i = 0; i < labelKeys.length; i++) {
-          const label: string = labelKeys[i] as string
-          const tableData: TableRow[] = groupedData[label]!
-          const newTab: Tab = {
-            label,
-            content: `No Reports Found for "${label}"`,
-            tableData,
+        
+        for (let i = 0; i < CONSTANT_TABS.length; i++) {
+          const tabLabel = CONSTANT_TABS[i] as string
+          
+          if (tabLabel === 'All Reports') {
+            // All Reports shows all data
+            tabs.value.push({
+              label: tabLabel,
+              content: 'No Reports Found',
+              tableData: allReportsData,
+            })
+          } else if (groupedData[tabLabel]) {
+            // Other tabs show filtered data by label
+            tabs.value.push({
+              label: tabLabel,
+              content: `No Reports Found for "${tabLabel}"`,
+              tableData: groupedData[tabLabel]!,
+            })
           }
-          tabs.value.push(newTab)
         }
       } else {
         tabs.value = []
