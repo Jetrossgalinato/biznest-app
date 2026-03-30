@@ -18,45 +18,11 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import type { UserRow } from '@/views/(admin)/users/types/users-table.types'
+import { USER_ROWS, USER_STATUS_CLASS } from '@/views/(admin)/users/utils/users-table.utils'
 import { Pencil, Trash2 } from 'lucide-vue-next'
 
-interface UserRow {
-  id: string
-  fullName: string
-  email: string
-  role: string
-  status: 'Active' | 'Pending' | 'Suspended'
-}
-
-const rows: UserRow[] = [
-  {
-    id: 'U-001',
-    fullName: 'Ava Reynolds',
-    email: 'ava.reynolds@biznest.app',
-    role: 'Admin',
-    status: 'Active',
-  },
-  {
-    id: 'U-002',
-    fullName: 'Noah Patel',
-    email: 'noah.patel@biznest.app',
-    role: 'Manager',
-    status: 'Pending',
-  },
-  {
-    id: 'U-003',
-    fullName: 'Mila Santos',
-    email: 'mila.santos@biznest.app',
-    role: 'Staff',
-    status: 'Suspended',
-  },
-]
-
-const statusClass: Record<UserRow['status'], string> = {
-  Active: 'bg-emerald-100 text-emerald-700',
-  Pending: 'bg-amber-100 text-amber-700',
-  Suspended: 'bg-rose-100 text-rose-700',
-}
+const rows: UserRow[] = USER_ROWS
 
 const pageSize = 5
 const currentPage = ref(1)
@@ -102,7 +68,7 @@ const nextPage = (): void => setPage(currentPage.value + 1)
             <TableCell class="px-4 py-3">
               <span
                 class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
-                :class="statusClass[row.status]"
+                :class="USER_STATUS_CLASS[row.status]"
               >
                 {{ row.status }}
               </span>
