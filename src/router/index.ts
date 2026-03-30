@@ -5,9 +5,14 @@ import AuthLayout from '@/layouts/AuthLayout.vue'
 import InnerLayout from '@/layouts/InnerLayout.vue'
 import LandingView from '@/views/landing/LandingView.vue'
 import ReportsView from '@/views/reports/ReportsView.vue'
+
+//Auth Routes
 import LoginView from '@/views/auth/login/LoginView.vue'
 import RegisterView from '@/views/auth/register/RegisterView.vue'
+
+//Admin Routes
 import TestView from '@/views/test/TestView.vue'
+import UsersView from '@/views/(admin)/users/UsersView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -56,6 +61,12 @@ const router = createRouter({
           path: 'reports',
           name: 'reports',
           component: ReportsView,
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'users',
+          name: 'users',
+          component: UsersView,
           meta: { requiresAuth: true },
         },
       ],
