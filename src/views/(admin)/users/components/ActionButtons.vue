@@ -10,11 +10,11 @@ import { Download, Upload, UserPlus } from 'lucide-vue-next'
       Add User
     </Button>
     <Button variant="outline">
-      <Upload class="size-4" />
+      <Download class="size-4" />
       Import
     </Button>
     <Button variant="outline">
-      <Download class="size-4" />
+      <Upload class="size-4" />
       Export
     </Button>
   </div>
