@@ -34,6 +34,27 @@ const paginatedRows = computed(() => {
   return rows.slice(start, start + pageSize)
 })
 
+type VisiblePageItem = number | 'ellipsis-left' | 'ellipsis-right'
+
+const visiblePages = computed<VisiblePageItem[]>(() => {
+  const total = totalPages.value
+  const current = currentPage.value
+
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, index) => index + 1)
+  }
+
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, 'ellipsis-right', total]
+  }
+
+  if (current >= total - 3) {
+    return [1, 'ellipsis-left', total - 4, total - 3, total - 2, total - 1, total]
+  }
+
+  return [1, 'ellipsis-left', current - 1, current, current + 1, 'ellipsis-right', total]
+})
+
 const setPage = (page: number): void => {
   currentPage.value = Math.min(Math.max(page, 1), totalPages.value)
 }
@@ -100,14 +121,18 @@ const nextPage = (): void => setPage(currentPage.value + 1)
           />
         </PaginationItem>
 
-        <PaginationItem v-for="page in totalPages" :key="page">
-          <PaginationLink href="#" :is-active="currentPage === page" @click.prevent="setPage(page)">
-            {{ page }}
+        <PaginationItem v-for="pageItem in visiblePages" :key="String(pageItem)">
+          <PaginationEllipsis
+            v-if="pageItem === 'ellipsis-left' || pageItem === 'ellipsis-right'"
+          />
+          <PaginationLink
+            v-else
+            href="#"
+            :is-active="currentPage === pageItem"
+            @click.prevent="setPage(pageItem)"
+          >
+            {{ pageItem }}
           </PaginationLink>
-        </PaginationItem>
-
-        <PaginationItem v-if="totalPages > 5">
-          <PaginationEllipsis />
         </PaginationItem>
 
         <PaginationItem>
