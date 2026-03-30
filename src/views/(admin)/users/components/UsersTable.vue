@@ -9,6 +9,14 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Pencil, Trash2 } from 'lucide-vue-next'
 
@@ -71,48 +79,49 @@ const nextPage = (): void => setPage(currentPage.value + 1)
 <template>
   <div class="space-y-4">
     <div class="overflow-hidden rounded-xl border bg-background">
-      <div class="overflow-x-auto">
-        <table class="w-full min-w-[780px] text-left text-sm">
-          <thead>
-            <tr class="border-b bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
-              <th class="px-4 py-3 font-medium">ID</th>
-              <th class="px-4 py-3 font-medium">Name</th>
-              <th class="px-4 py-3 font-medium">Email</th>
-              <th class="px-4 py-3 font-medium">Role</th>
-              <th class="px-4 py-3 font-medium">Status</th>
-              <th class="px-4 py-3 text-right font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in paginatedRows" :key="row.id" class="border-b last:border-b-0">
-              <td class="px-4 py-3 font-medium">{{ row.id }}</td>
-              <td class="px-4 py-3">{{ row.fullName }}</td>
-              <td class="px-4 py-3 text-muted-foreground">{{ row.email }}</td>
-              <td class="px-4 py-3">{{ row.role }}</td>
-              <td class="px-4 py-3">
-                <span
-                  class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
-                  :class="statusClass[row.status]"
-                >
-                  {{ row.status }}
-                </span>
-              </td>
-              <td class="px-4 py-3">
-                <div class="flex items-center justify-end gap-2">
-                  <Button size="sm" variant="outline">
-                    <Pencil class="size-4" />
-                    Edit
-                  </Button>
-                  <Button size="sm" variant="destructive">
-                    <Trash2 class="size-4" />
-                    Delete
-                  </Button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <Table class="min-w-[780px] text-left text-sm">
+        <TableHeader>
+          <TableRow
+            class="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground hover:bg-muted/40"
+          >
+            <TableHead class="px-4 py-3 font-medium">ID</TableHead>
+            <TableHead class="px-4 py-3 font-medium">Name</TableHead>
+            <TableHead class="px-4 py-3 font-medium">Email</TableHead>
+            <TableHead class="px-4 py-3 font-medium">Role</TableHead>
+            <TableHead class="px-4 py-3 font-medium">Status</TableHead>
+            <TableHead class="px-4 py-3 text-right font-medium">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+
+        <TableBody>
+          <TableRow v-for="row in paginatedRows" :key="row.id">
+            <TableCell class="px-4 py-3 font-medium">{{ row.id }}</TableCell>
+            <TableCell class="px-4 py-3">{{ row.fullName }}</TableCell>
+            <TableCell class="px-4 py-3 text-muted-foreground">{{ row.email }}</TableCell>
+            <TableCell class="px-4 py-3">{{ row.role }}</TableCell>
+            <TableCell class="px-4 py-3">
+              <span
+                class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
+                :class="statusClass[row.status]"
+              >
+                {{ row.status }}
+              </span>
+            </TableCell>
+            <TableCell class="px-4 py-3">
+              <div class="flex items-center justify-end gap-2">
+                <Button size="sm" variant="outline">
+                  <Pencil class="size-4" />
+                  Edit
+                </Button>
+                <Button size="sm" variant="destructive">
+                  <Trash2 class="size-4" />
+                  Delete
+                </Button>
+              </div>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
     </div>
 
     <Pagination class="justify-end">
