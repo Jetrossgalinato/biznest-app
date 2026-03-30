@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import type { Tab, TableRow } from '@/types/reports.types'
+import type { Tab, TableRow, DatabaseRow } from '@/types/reports.types'
 import { getSupabaseClient } from '@/services/supabase.client'
 
 // Define constant tab labels
@@ -26,29 +26,30 @@ export const useReportsStore = defineStore('reports', () => {
   const fetchReports = async () => {
     loading.value = true
     error.value = null
-    try {
-      const supabase = getSupabaseClient()
-      
-      // Fetch all reports from Supabase table
-      const { data, error: fetchError } = await supabase
-        .from('reports')
-        .select('*')
-        .order('created_at', { ascending: false })
 
-      if (fetchError) {
-        throw fetchError
-      }
+    const supabase = getSupabaseClient()
+    
+    // Fetch all reports from Supabase table
+    const { data, error: fetchError } = await supabase
+      .from('reports')
+      .select('businessowner, contactnumber, businesslocation, zoningclassification, geotag, label, created_at')
+      .order('created_at', { ascending: false })
 
-      if (data && data.length > 0) {
+    if (fetchError) {
+      error.value = fetchError instanceof Error ? fetchError.message : 'Failed to fetch reports'
+      console.error('Error fetching reports:', fetchError)
+      tabs.value = []
+    } else {
+      const typedData = data as DatabaseRow[] | null
+      if (typedData && typedData.length > 0) {
         // Transform the fetched data into Tab[] structure
         const allReportsData: TableRow[] = []
         const groupedData: { [key: string]: TableRow[] } = {}
 
         // First pass: collect all data and group by label
-        for (let i = 0; i < data.length; i++) {
-          const row = data[i]
-          
+        for (const row of typedData) {
           const tableRow: TableRow = {
+            label: row.label || 'Uncategorized',
             businessOwner: row.businessowner || '',
             contactNumber: row.contactnumber || '',
             businessLocation: row.businesslocation || '',
@@ -80,27 +81,28 @@ export const useReportsStore = defineStore('reports', () => {
               content: 'No Reports Found',
               tableData: allReportsData,
             })
-          } else if (groupedData[tabLabel]) {
-            // Other tabs show filtered data by label
+          } else {
+            // Other tabs show filtered data by label, or empty if no data
             tabs.value.push({
               label: tabLabel,
               content: `No Reports Found for "${tabLabel}"`,
-              tableData: groupedData[tabLabel]!,
+              tableData: groupedData[tabLabel] || [],
             })
           }
         }
       } else {
-        tabs.value = []
+        // Still build tabs, just with no data
+        tabs.value = CONSTANT_TABS.map(label => ({
+          label,
+          content: label === 'All Reports' ? 'No Reports Found' : `No Reports Found for "${label}"`,
+          tableData: [],
+        }))
       }
 
       console.log('Fetched reports from Supabase:', tabs.value)
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch reports'
-      console.error('Error fetching reports:', err)
-      tabs.value = []
-    } finally {
-      loading.value = false
     }
+
+    loading.value = false
   }
 
   const setSelectedTabIndex = (index: number) => {

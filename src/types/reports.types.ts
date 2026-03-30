@@ -1,3 +1,13 @@
+export interface DatabaseRow {
+  businessowner: string
+  contactnumber: string
+  businesslocation: string
+  zoningclassification: string
+  geotag: string
+  label: string
+  created_at: string
+}
+
 export interface TableRow {
   label?: string
   businessOwner?: string

@@ -6,7 +6,7 @@ defineProps<ReportsTableProps>();
 
 <template>
   <div class="p-6">
-    <table v-if="tableData" class="w-full border-collapse">
+    <table v-if="tableData && tableData.length > 0" class="w-full border-collapse">
       <thead>
         <tr class="bg-muted border-b-2 border-border">
           <th class="px-4 py-3 text-left font-semibold text-xs text-foreground uppercase">Business Owner</th>
@@ -26,7 +26,7 @@ defineProps<ReportsTableProps>();
         </tr>
       </tbody>
     </table>
-    <div v-else>
+    <div v-else class="text-center py-10 text-muted-foreground">
       {{ content }}
     </div>
   </div>
