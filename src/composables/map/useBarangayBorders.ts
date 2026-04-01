@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { fetchBarangayBordersSource } from '@/views/admin/admin_map/composables/barangayBordersSource'
+import { fetchBarangayBordersSource } from '@/views/(admin)/map/composables/barangayBordersSource'
 import type {
   BarangayFeature,
   BarangayFeatureCollection,

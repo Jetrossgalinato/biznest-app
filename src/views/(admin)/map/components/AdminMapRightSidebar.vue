@@ -5,10 +5,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import LayerMappedZonesDropdown from '@/views/admin/admin_map/components/LayerMappedZonesDropdown.vue'
-import MappedZoneFormModal from '@/views/admin/admin_map/components/MappedZoneFormModal.vue'
-import ZoningLayerDeleteDialog from '@/views/admin/admin_map/components/ZoningLayerDeleteDialog.vue'
-import ZoningLayerFormModal from '@/views/admin/admin_map/components/ZoningLayerFormModal.vue'
+import LayerMappedZonesDropdown from '@/views/(admin)/map/components/LayerMappedZonesDropdown.vue'
+import MappedZoneFormModal from '@/views/(admin)/map/components/MappedZoneFormModal.vue'
+import ZoningLayerDeleteDialog from '@/views/(admin)/map/components/ZoningLayerDeleteDialog.vue'
+import ZoningLayerFormModal from '@/views/(admin)/map/components/ZoningLayerFormModal.vue'
 import type {
   CreateZoningLayerInput,
   MappedZone,
