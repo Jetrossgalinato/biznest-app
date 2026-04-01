@@ -5,6 +5,7 @@ import type {
   GoogleInfoWindowInstance,
   GoogleLatLng,
   GoogleMapInstance,
+  GoogleMarkerInstance,
   GoogleMapsEventListener,
   GooglePolygonInstance,
   GooglePolylineInstance,
@@ -32,6 +33,9 @@ interface GoogleAdapterOptions {
 
 type MapClickHandler = (point: MapDrawPoint) => void
 
+const DRAW_MODE_CURSOR =
+  'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'%3E%3Cpath d=\'M4 20l4-1 9.5-9.5-3-3L5 16z\' fill=\'%231f2937\'/%3E%3Cpath d=\'M14.5 6.5l3 3 1-1a1.6 1.6 0 000-2.2l-.8-.8a1.6 1.6 0 00-2.2 0z\' fill=\'%230f172a\'/%3E%3C/svg%3E") 2 20, crosshair'
+
 export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
   let googleMapsLoader: Promise<void> | null = null
   let googleMap: GoogleMapInstance | null = null
@@ -40,8 +44,24 @@ export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
   let googleBarangayInfoWindow: GoogleInfoWindowInstance | null = null
   let googleDrawPreviewPolygon: GooglePolygonInstance | null = null
   let googleDrawPreviewPolyline: GooglePolylineInstance | null = null
+  let googleDrawPreviewVertices: GoogleMarkerInstance[] = []
   let googleMapClickListener: GoogleMapsEventListener | null = null
   let mapClickHandler: MapClickHandler | null = null
+  let isDrawMode = false
+
+  function applyGoogleCursor(): void {
+    if (!googleMap) {
+      return
+    }
+
+    googleMap.getDiv().style.cursor = isDrawMode ? DRAW_MODE_CURSOR : ''
+
+    if (googleMap.setOptions) {
+      googleMap.setOptions({
+        draggableCursor: isDrawMode ? DRAW_MODE_CURSOR : null,
+      })
+    }
+  }
 
   function destroyGoogleBarangayPolygons(): void {
     googleBarangayPolygons.forEach((polygon) => polygon.setMap(null))
@@ -62,6 +82,8 @@ export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
     googleDrawPreviewPolygon = null
     googleDrawPreviewPolyline?.setMap(null)
     googleDrawPreviewPolyline = null
+    googleDrawPreviewVertices.forEach((marker) => marker.setMap(null))
+    googleDrawPreviewVertices = []
   }
 
   function clearGoogleMapClickListener(): void {
@@ -93,6 +115,11 @@ export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
     destroyGoogleMappedZonePolygons()
     destroyGoogleDrawPreview()
     clearGoogleMapClickListener()
+
+    if (googleMap) {
+      googleMap.getDiv().style.cursor = ''
+    }
+
     googleMap = null
   }
 
@@ -204,12 +231,33 @@ export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
   async function renderDrawPreview(drawPoints: MapDrawPoint[]): Promise<void> {
     destroyGoogleDrawPreview()
 
-    if (!googleMap || drawPoints.length < 2) {
+    if (!googleMap || drawPoints.length === 0) {
       return
     }
 
     const googleMaps = (window as GoogleWindow).google?.maps
     if (!googleMaps) {
+      return
+    }
+
+    if (googleMaps.Marker) {
+      googleDrawPreviewVertices = drawPoints.map((point) => new googleMaps.Marker({
+        position: { lat: point.lat, lng: point.lng },
+        map: googleMap as GoogleMapInstance,
+        zIndex: 999,
+        icon: {
+          path: 'M 0,0 m -5,0 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0',
+          fillColor: '#3b82f6',
+          fillOpacity: 1,
+          strokeColor: '#1d4ed8',
+          strokeOpacity: 1,
+          strokeWeight: 1,
+          scale: 1,
+        },
+      }))
+    }
+
+    if (drawPoints.length < 2) {
       return
     }
 
@@ -240,6 +288,11 @@ export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
   function setMapClickHandler(handler: MapClickHandler | null): void {
     mapClickHandler = handler
     syncGoogleMapClickListener()
+  }
+
+  function setDrawMode(enabled: boolean): void {
+    isDrawMode = enabled
+    applyGoogleCursor()
   }
 
   async function focusOnZone(points: MapDrawPoint[]): Promise<void> {
@@ -280,6 +333,7 @@ export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
       onMapReady: (map) => {
         googleMap = map
         syncGoogleMapClickListener()
+        applyGoogleCursor()
       },
     })
   }
@@ -311,6 +365,7 @@ export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
     renderMappedZones,
     renderDrawPreview,
     setMapClickHandler,
+    setDrawMode,
     focusOnZone,
   }
 }

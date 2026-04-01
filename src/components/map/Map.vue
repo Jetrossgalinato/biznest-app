@@ -122,6 +122,7 @@ watch(
 watch(
   () => props.isDrawMode,
   () => {
+    syncDrawModeForActiveProvider()
     syncMapClickHandlerForActiveProvider()
   },
 )
@@ -195,6 +196,17 @@ function syncMapClickHandlerForActiveProvider(): void {
   leafletMapAdapter.setMapClickHandler(null)
 }
 
+function syncDrawModeForActiveProvider(): void {
+  if (props.provider === 'leaflet') {
+    leafletMapAdapter.setDrawMode(Boolean(props.isDrawMode))
+    googleMapAdapter.setDrawMode(false)
+    return
+  }
+
+  googleMapAdapter.setDrawMode(Boolean(props.isDrawMode))
+  leafletMapAdapter.setDrawMode(false)
+}
+
 async function initProviderMap() {
   mapError.value = ''
 
@@ -208,6 +220,7 @@ async function initProviderMap() {
     await renderMappedZonesForActiveProvider()
     await renderDrawPreviewForActiveProvider()
     await focusSelectedMappedZoneForActiveProvider()
+    syncDrawModeForActiveProvider()
     syncMapClickHandlerForActiveProvider()
     return
   }
@@ -218,6 +231,7 @@ async function initProviderMap() {
     await renderMappedZonesForActiveProvider()
     await renderDrawPreviewForActiveProvider()
     await focusSelectedMappedZoneForActiveProvider()
+    syncDrawModeForActiveProvider()
     syncMapClickHandlerForActiveProvider()
   } catch (error) {
     console.warn('Google Maps unavailable', error)

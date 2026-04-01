@@ -20,6 +20,9 @@ interface LeafletAdapterOptions {
 
 type MapClickHandler = (point: MapDrawPoint) => void
 
+const DRAW_MODE_CURSOR =
+  'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'%3E%3Cpath d=\'M4 20l4-1 9.5-9.5-3-3L5 16z\' fill=\'%231f2937\'/%3E%3Cpath d=\'M14.5 6.5l3 3 1-1a1.6 1.6 0 000-2.2l-.8-.8a1.6 1.6 0 00-2.2 0z\' fill=\'%230f172a\'/%3E%3C/svg%3E") 2 20, crosshair'
+
 export function useLeafletMapAdapter(options: LeafletAdapterOptions) {
   let leafletMap: LeafletMap | null = null
   let leafletBarangayLayer: LeafletLayerGroup | null = null
@@ -27,6 +30,16 @@ export function useLeafletMapAdapter(options: LeafletAdapterOptions) {
   let leafletDrawPreviewLayer: LeafletLayerGroup | null = null
   let mapClickHandler: MapClickHandler | null = null
   let leafletClickListener: ((event: LeafletMouseEvent) => void) | null = null
+  let isDrawMode = false
+
+  function applyLeafletCursor(): void {
+    if (!leafletMap) {
+      return
+    }
+
+    const container = leafletMap.getContainer()
+    container.style.cursor = isDrawMode ? DRAW_MODE_CURSOR : ''
+  }
 
   async function init(): Promise<void> {
     if (!options.containerRef.value) {
@@ -46,6 +59,7 @@ export function useLeafletMapAdapter(options: LeafletAdapterOptions) {
     }).addTo(leafletMap)
 
     L.marker([options.center.lat, options.center.lng]).addTo(leafletMap).bindPopup('Butuan City')
+    applyLeafletCursor()
   }
 
   function destroyLeafletBarangayLayer(): void {
@@ -83,9 +97,15 @@ export function useLeafletMapAdapter(options: LeafletAdapterOptions) {
     clearLeafletClickListener()
 
     if (leafletMap) {
+      leafletMap.getContainer().style.cursor = ''
       leafletMap.remove()
       leafletMap = null
     }
+  }
+
+  function setDrawMode(enabled: boolean): void {
+    isDrawMode = enabled
+    applyLeafletCursor()
   }
 
   async function renderBarangayBorders(
@@ -254,6 +274,7 @@ export function useLeafletMapAdapter(options: LeafletAdapterOptions) {
     renderMappedZones,
     renderDrawPreview,
     setMapClickHandler,
+    setDrawMode,
     focusOnZone,
   }
 }

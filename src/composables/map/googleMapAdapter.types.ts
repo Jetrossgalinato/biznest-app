@@ -34,6 +34,10 @@ export interface GooglePolylineInstance {
   setMap: (map: GoogleMapInstance | null) => void
 }
 
+export interface GoogleMarkerInstance {
+  setMap: (map: GoogleMapInstance | null) => void
+}
+
 export interface GoogleInfoWindowInstance {
   setContent: (content: string) => void
   setPosition: (position: GooglePolygonPath) => void
@@ -58,7 +62,17 @@ export type LegacyMarkerCtor = new (options: {
   position: { lat: number; lng: number }
   map: GoogleMapInstance
   title?: string
-}) => unknown
+  zIndex?: number
+  icon?: {
+    path: string
+    fillColor: string
+    fillOpacity: number
+    strokeColor: string
+    strokeOpacity: number
+    strokeWeight: number
+    scale: number
+  }
+}) => GoogleMarkerInstance
 
 export interface GoogleMapsAPI {
   Map?: GoogleMapCtor
