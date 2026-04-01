@@ -35,6 +35,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'map-click', point: MapDrawPoint): void
+  (e: 'draw-point-move', index: number, point: MapDrawPoint): void
 }>()
 
 const mapContainer = ref<HTMLDivElement | null>(null)
@@ -121,9 +122,11 @@ watch(
 
 watch(
   () => props.isDrawMode,
-  () => {
+  async () => {
     syncDrawModeForActiveProvider()
     syncMapClickHandlerForActiveProvider()
+    syncDrawPointMoveHandlerForActiveProvider()
+    await renderDrawPreviewForActiveProvider()
   },
 )
 
@@ -196,6 +199,21 @@ function syncMapClickHandlerForActiveProvider(): void {
   leafletMapAdapter.setMapClickHandler(null)
 }
 
+function syncDrawPointMoveHandlerForActiveProvider(): void {
+  const handler = props.isDrawMode
+    ? (index: number, point: MapDrawPoint) => emit('draw-point-move', index, point)
+    : null
+
+  if (props.provider === 'leaflet') {
+    leafletMapAdapter.setDrawPointMoveHandler(handler)
+    googleMapAdapter.setDrawPointMoveHandler(null)
+    return
+  }
+
+  googleMapAdapter.setDrawPointMoveHandler(handler)
+  leafletMapAdapter.setDrawPointMoveHandler(null)
+}
+
 function syncDrawModeForActiveProvider(): void {
   if (props.provider === 'leaflet') {
     leafletMapAdapter.setDrawMode(Boolean(props.isDrawMode))
@@ -222,6 +240,7 @@ async function initProviderMap() {
     await focusSelectedMappedZoneForActiveProvider()
     syncDrawModeForActiveProvider()
     syncMapClickHandlerForActiveProvider()
+    syncDrawPointMoveHandlerForActiveProvider()
     return
   }
 
@@ -233,6 +252,7 @@ async function initProviderMap() {
     await focusSelectedMappedZoneForActiveProvider()
     syncDrawModeForActiveProvider()
     syncMapClickHandlerForActiveProvider()
+    syncDrawPointMoveHandlerForActiveProvider()
   } catch (error) {
     console.warn('Google Maps unavailable', error)
 

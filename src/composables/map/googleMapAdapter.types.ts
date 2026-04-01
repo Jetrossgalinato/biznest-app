@@ -36,6 +36,10 @@ export interface GooglePolylineInstance {
 
 export interface GoogleMarkerInstance {
   setMap: (map: GoogleMapInstance | null) => void
+  addListener?: (
+    eventName: 'dragend',
+    handler: (event: GoogleMapMouseEvent) => void,
+  ) => GoogleMapsEventListener
 }
 
 export interface GoogleInfoWindowInstance {
@@ -62,6 +66,7 @@ export type LegacyMarkerCtor = new (options: {
   position: { lat: number; lng: number }
   map: GoogleMapInstance
   title?: string
+  draggable?: boolean
   zIndex?: number
   icon?: {
     path: string

@@ -182,6 +182,28 @@ function handleMapClick(point: MapDrawPoint): void {
   drawPoints.value = [...drawPoints.value, point]
 }
 
+function handleDrawPointMove(index: number, point: MapDrawPoint): void {
+  if (!isDrawMode.value) {
+    return
+  }
+
+  drawPoints.value = drawPoints.value.map((existingPoint, existingPointIndex) => {
+    if (existingPointIndex !== index) {
+      return existingPoint
+    }
+
+    return point
+  })
+}
+
+function undoLastDrawPoint(): void {
+  if (!isDrawMode.value || drawPoints.value.length === 0) {
+    return
+  }
+
+  drawPoints.value = drawPoints.value.slice(0, -1)
+}
+
 function cancelDrawZoneMode(): void {
   isDrawMode.value = false
   drawPoints.value = []
@@ -291,6 +313,7 @@ function handleFocusMappedZone(zoneId: string): void {
         :draw-points="drawPoints"
         :is-draw-mode="isDrawMode"
         @map-click="handleMapClick"
+        @draw-point-move="handleDrawPointMove"
       />
 
       <Button
@@ -324,6 +347,14 @@ function handleFocusMappedZone(zoneId: string): void {
         <p class="font-medium">Draw Mode Active</p>
         <p class="text-muted-foreground">{{ drawPoints.length }} points</p>
         <div class="mt-2 flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            :disabled="drawPoints.length === 0"
+            @click="undoLastDrawPoint"
+          >
+            Undo Last Point
+          </Button>
           <Button size="sm" variant="outline" @click="cancelDrawZoneMode">Cancel</Button>
           <Button size="sm" :disabled="drawPoints.length < 3" @click="finishDrawZoneMode">
             Save Polygon

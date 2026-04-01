@@ -32,6 +32,7 @@ interface GoogleAdapterOptions {
 }
 
 type MapClickHandler = (point: MapDrawPoint) => void
+type DrawPointMoveHandler = (index: number, point: MapDrawPoint) => void
 
 const DRAW_MODE_CURSOR =
   'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'%3E%3Cpath d=\'M4 20l4-1 9.5-9.5-3-3L5 16z\' fill=\'%231f2937\'/%3E%3Cpath d=\'M14.5 6.5l3 3 1-1a1.6 1.6 0 000-2.2l-.8-.8a1.6 1.6 0 00-2.2 0z\' fill=\'%230f172a\'/%3E%3C/svg%3E") 2 20, crosshair'
@@ -47,6 +48,7 @@ export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
   let googleDrawPreviewVertices: GoogleMarkerInstance[] = []
   let googleMapClickListener: GoogleMapsEventListener | null = null
   let mapClickHandler: MapClickHandler | null = null
+  let drawPointMoveHandler: DrawPointMoveHandler | null = null
   let isDrawMode = false
 
   function applyGoogleCursor(): void {
@@ -241,20 +243,38 @@ export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
     }
 
     if (googleMaps.Marker) {
-      googleDrawPreviewVertices = drawPoints.map((point) => new googleMaps.Marker({
-        position: { lat: point.lat, lng: point.lng },
-        map: googleMap as GoogleMapInstance,
-        zIndex: 999,
-        icon: {
-          path: 'M 0,0 m -5,0 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0',
-          fillColor: '#3b82f6',
-          fillOpacity: 1,
-          strokeColor: '#1d4ed8',
-          strokeOpacity: 1,
-          strokeWeight: 1,
-          scale: 1,
-        },
-      }))
+      googleDrawPreviewVertices = drawPoints.map((point, index) => {
+        const marker = new googleMaps.Marker({
+          position: { lat: point.lat, lng: point.lng },
+          map: googleMap as GoogleMapInstance,
+          draggable: Boolean(isDrawMode && drawPointMoveHandler),
+          zIndex: 999,
+          icon: {
+            path: 'M 0,0 m -5,0 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0',
+            fillColor: '#3b82f6',
+            fillOpacity: 1,
+            strokeColor: '#1d4ed8',
+            strokeOpacity: 1,
+            strokeWeight: 1,
+            scale: 1,
+          },
+        })
+
+        if (isDrawMode && drawPointMoveHandler && marker.addListener) {
+          marker.addListener('dragend', (event) => {
+            if (!event.latLng) {
+              return
+            }
+
+            drawPointMoveHandler?.(index, {
+              lat: event.latLng.lat(),
+              lng: event.latLng.lng(),
+            })
+          })
+        }
+
+        return marker
+      })
     }
 
     if (drawPoints.length < 2) {
@@ -288,6 +308,10 @@ export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
   function setMapClickHandler(handler: MapClickHandler | null): void {
     mapClickHandler = handler
     syncGoogleMapClickListener()
+  }
+
+  function setDrawPointMoveHandler(handler: DrawPointMoveHandler | null): void {
+    drawPointMoveHandler = handler
   }
 
   function setDrawMode(enabled: boolean): void {
@@ -366,6 +390,7 @@ export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
     renderDrawPreview,
     setMapClickHandler,
     setDrawMode,
+    setDrawPointMoveHandler,
     focusOnZone,
   }
 }
