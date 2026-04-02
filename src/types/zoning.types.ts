@@ -38,6 +38,22 @@ export interface MappedZone {
   updated_at: string
 }
 
+export interface MappedZoneRpcRow {
+  id: string
+  zoning_layer_id: string
+  zoning_title: string
+  zoning_color: string
+  name: string
+  description: string | null
+  is_visible: boolean
+  geometry: {
+    type?: string
+    coordinates?: unknown
+  } | null
+  created_at: string
+  updated_at: string
+}
+
 export interface CreateMappedZoneInput {
   zoningLayerId: string
   name: string

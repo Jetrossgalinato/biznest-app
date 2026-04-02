@@ -4,7 +4,7 @@ import type {
   GoogleMapInstance,
   GoogleWindow,
   MapsLibrary,
-} from '@/composables/map/googleMapAdapter.types'
+} from '@/types/google-map-adapter.types'
 
 export function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))

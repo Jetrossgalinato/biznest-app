@@ -8,6 +8,7 @@ import AdminMapRightSidebar from '@/views/(admin)/map/components/AdminMapRightSi
 import MappedZoneFormModal from '@/views/(admin)/map/components/MappedZoneFormModal.vue'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { TypographyMuted, TypographySmall } from '@/components/typography'
 import {
   createMappedZone,
   createZoningLayer,
@@ -317,28 +318,28 @@ function handleFocusMappedZone(zoneId: string): void {
 <template>
   <div class="w-full h-full flex flex-col gap-3 p-3">
     <div class="flex flex-wrap items-center gap-2">
-      <label class="text-sm font-medium">Map Provider</label>
+      <TypographySmall as="label" class="text-sm font-medium">Map Provider</TypographySmall>
       <Select v-model="provider">
         <SelectTrigger class="w-60">
           <SelectValue placeholder="Select map provider" />
         </SelectTrigger>
         <SelectContent style="z-index: 9999">
-          <SelectItem value="leaflet">Leaflet OpenStreetMap</SelectItem>
-          <SelectItem value="google">Google Maps</SelectItem>
+          <SelectItem value="leaflet"><TypographySmall as="span">Leaflet OpenStreetMap</TypographySmall></SelectItem>
+          <SelectItem value="google"><TypographySmall as="span">Google Maps</TypographySmall></SelectItem>
         </SelectContent>
       </Select>
 
       <Button variant="outline" :disabled="isLoading" @click="toggleBarangayBorders">
-        {{ showBarangayBorders ? 'Hide Barangay Border' : 'Show Barangay Border' }}
+        <TypographySmall as="span">{{ showBarangayBorders ? 'Hide Barangay Border' : 'Show Barangay Border' }}</TypographySmall>
       </Button>
 
       <Button variant="outline" @click="startDrawZoneMode">
         <PenTool class="h-4 w-4" />
-        Draw Zone
+        <TypographySmall as="span">Draw Zone</TypographySmall>
       </Button>
 
-      <span v-if="isLoading" class="text-xs text-muted-foreground">Loading barangay borders...</span>
-      <span v-if="errorMessage" class="text-xs text-destructive">{{ errorMessage }}</span>
+      <TypographyMuted v-if="isLoading" as="span" class="text-xs text-muted-foreground">Loading barangay borders...</TypographyMuted>
+      <TypographySmall v-if="errorMessage" as="span" class="text-xs text-destructive">{{ errorMessage }}</TypographySmall>
     </div>
 
     <div class="relative flex-1 min-h-0">
@@ -360,7 +361,7 @@ function handleFocusMappedZone(zoneId: string): void {
         @click="isSidebarOpen = true"
       >
         <Layers class="h-4 w-4" />
-        Layers
+        <TypographySmall as="span">Layers</TypographySmall>
       </Button>
 
       <AdminMapRightSidebar
@@ -382,8 +383,8 @@ function handleFocusMappedZone(zoneId: string): void {
         v-if="isDrawMode"
         class="absolute left-3 top-3 z-9999 rounded-md border bg-card/95 px-3 py-2 text-xs shadow"
       >
-        <p class="font-medium">Draw Mode Active</p>
-        <p class="text-muted-foreground">{{ drawPoints.length }} points</p>
+        <TypographySmall as="p" class="font-medium text-xs">Draw Mode Active</TypographySmall>
+        <TypographyMuted as="p" class="text-xs text-muted-foreground">{{ drawPoints.length }} points</TypographyMuted>
         <div class="mt-2 flex gap-2">
           <Button
             size="sm"
@@ -391,11 +392,11 @@ function handleFocusMappedZone(zoneId: string): void {
             :disabled="drawPoints.length === 0"
             @click="undoLastDrawPoint"
           >
-            Undo
+            <TypographySmall as="span">Undo</TypographySmall>
           </Button>
-          <Button size="sm" variant="outline" @click="cancelDrawZoneMode">Cancel</Button>
+          <Button size="sm" variant="outline" @click="cancelDrawZoneMode"><TypographySmall as="span">Cancel</TypographySmall></Button>
           <Button size="sm" :disabled="drawPoints.length < 3" @click="finishDrawZoneMode">
-            Save Polygon
+            <TypographySmall as="span">Save Polygon</TypographySmall>
           </Button>
         </div>
       </div>
@@ -404,7 +405,7 @@ function handleFocusMappedZone(zoneId: string): void {
         v-if="zoningError"
         class="absolute bottom-3 left-3 z-9999 rounded-md border border-destructive/45 bg-destructive/12 px-3 py-2 text-xs text-destructive shadow"
       >
-        {{ zoningError }}
+        <TypographySmall as="p" class="m-0 text-xs text-destructive">{{ zoningError }}</TypographySmall>
       </div>
 
       <MappedZoneFormModal

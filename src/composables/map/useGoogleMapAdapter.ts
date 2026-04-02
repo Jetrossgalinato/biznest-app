@@ -10,7 +10,7 @@ import type {
   GooglePolygonInstance,
   GooglePolylineInstance,
   GoogleWindow,
-} from '@/composables/map/googleMapAdapter.types'
+} from '@/types/google-map-adapter.types'
 import {
   delay,
   initializeGoogleMapInstance,
@@ -242,9 +242,10 @@ export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
       return
     }
 
-    if (googleMaps.Marker) {
+    const MarkerCtor = googleMaps.Marker
+    if (MarkerCtor) {
       googleDrawPreviewVertices = drawPoints.map((point, index) => {
-        const marker = new googleMaps.Marker({
+        const marker = new MarkerCtor({
           position: { lat: point.lat, lng: point.lng },
           map: googleMap as GoogleMapInstance,
           draggable: Boolean(isDrawMode && drawPointMoveHandler),

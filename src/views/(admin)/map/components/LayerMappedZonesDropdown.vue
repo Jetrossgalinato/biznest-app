@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { ChevronRight, Pencil, Trash2 } from 'lucide-vue-next'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { TypographyMuted, TypographySmall } from '@/components/typography'
 import type { MappedZone } from '@/types/zoning.types'
 
 const props = withDefaults(
@@ -41,7 +42,7 @@ function toggleExpanded(): void {
       class="mt-2 flex w-full items-center gap-2 rounded-md border px-2 py-1 text-left"
       @click="toggleExpanded"
     >
-      <p class="text-xs font-medium">Mapped Zones</p>
+      <TypographySmall as="span" class="text-xs font-medium">Mapped Zones</TypographySmall>
       <Badge variant="secondary" class="ml-auto">
         {{ zones.length }}
       </Badge>
@@ -59,7 +60,7 @@ function toggleExpanded(): void {
         @click="emit('select-mapped-zone', zone.id)"
       >
         <div class="flex items-center gap-1">
-          <p class="flex-1 truncate text-xs font-medium">{{ zone.name }}</p>
+          <TypographySmall as="span" class="flex-1 truncate text-xs font-medium">{{ zone.name }}</TypographySmall>
           <Button
             variant="ghost"
             size="icon-sm"
@@ -79,20 +80,22 @@ function toggleExpanded(): void {
             <Trash2 class="h-3.5 w-3.5 text-destructive" />
           </Button>
         </div>
-        <p
+        <TypographyMuted
           v-if="zone.description"
+          as="p"
           class="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground"
         >
           {{ zone.description }}
-        </p>
+        </TypographyMuted>
       </div>
 
-      <p
+      <TypographyMuted
         v-if="zones.length === 0"
+        as="p"
         class="text-[11px] text-muted-foreground"
       >
         No mapped zones under this layer yet.
-      </p>
+      </TypographyMuted>
     </div>
   </div>
 </template>

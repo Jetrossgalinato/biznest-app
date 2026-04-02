@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
 import { ChevronRight, Eye, EyeOff, Pencil, Plus, Trash2, X } from 'lucide-vue-next'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { TypographyP, TypographySmall } from '@/components/typography'
 import { Separator } from '@/components/ui/separator'
+import { useAdminMapRightSidebar } from '@/views/(admin)/map/composables/useAdminMapRightSidebar'
 import LayerMappedZonesDropdown from '@/views/(admin)/map/components/LayerMappedZonesDropdown.vue'
 import MappedZoneFormModal from '@/views/(admin)/map/components/MappedZoneFormModal.vue'
 import ZoningLayerDeleteDialog from '@/views/(admin)/map/components/ZoningLayerDeleteDialog.vue'
@@ -41,177 +42,41 @@ const emit = defineEmits<{
   (e: 'toggle-layer-visibility', payload: { layerId: string; isActive: boolean }): void
 }>()
 
-const showAddLayerModal = ref(false)
-const showLayerList = ref(false)
-const showEditLayerModal = ref(false)
-const deletingLayerId = ref<string | null>(null)
-const editingLayerId = ref<string | null>(null)
-const showEditMappedZoneModal = ref(false)
-const deletingMappedZoneId = ref<string | null>(null)
-const editingMappedZoneId = ref<string | null>(null)
-
-const addLayerInitialValue = computed<UpdateZoningLayerInput>(() => ({
-  title: '',
-  color: '#65a30d',
-  description: '',
-}))
-
-const editLayerInitialValue = computed<UpdateZoningLayerInput>(() => {
-  const activeLayer = props.layers.find((layer) => layer.id === editingLayerId.value)
-
-  if (!activeLayer) {
-    return {
-      title: '',
-      color: '#65a30d',
-      description: '',
-    }
-  }
-
-  return {
-    title: activeLayer.title,
-    color: activeLayer.color,
-    description: activeLayer.description ?? '',
-  }
-})
-
-const editMappedZoneInitialValue = computed<UpdateMappedZoneInput>(() => {
-  const activeZone = props.mappedZones.find((zone) => zone.id === editingMappedZoneId.value)
-
-  if (!activeZone) {
-    return {
-      zoningLayerId: props.layers[0]?.id ?? '',
-      name: '',
-      description: '',
-    }
-  }
-
-  return {
-    zoningLayerId: activeZone.zoning_layer_id,
-    name: activeZone.name,
-    description: activeZone.description ?? '',
-  }
-})
-
-function openAddLayerModal(): void {
-  showAddLayerModal.value = true
-}
-
-function closeAddLayerModal(): void {
-  showAddLayerModal.value = false
-}
-
-function openEditLayerModal(layer: ZoningLayer): void {
-  editingLayerId.value = layer.id
-  showEditLayerModal.value = true
-}
-
-function closeEditLayerModal(): void {
-  showEditLayerModal.value = false
-  editingLayerId.value = null
-}
-
-function submitLayer(input: UpdateZoningLayerInput): void {
-  emit('submit-layer', {
-    title: input.title,
-    color: input.color,
-    description: input.description,
-  })
-
-  closeAddLayerModal()
-}
-
-function submitLayerUpdate(input: UpdateZoningLayerInput): void {
-  if (!editingLayerId.value || props.isSubmitting) {
-    return
-  }
-
-  emit('update-layer', {
-    layerId: editingLayerId.value,
-    input: {
-      title: input.title,
-      color: input.color,
-      description: input.description,
-    },
-  })
-
-  closeEditLayerModal()
-}
-
-function openDeleteDialog(layerId: string): void {
-  deletingLayerId.value = layerId
-}
-
-function cancelDeleteDialog(): void {
-  deletingLayerId.value = null
-}
-
-function confirmDeleteLayer(): void {
-  if (!deletingLayerId.value || props.isSubmitting) {
-    return
-  }
-
-  emit('delete-layer', deletingLayerId.value)
-  cancelDeleteDialog()
-}
-
-function toggleLayerVisibility(layer: ZoningLayer): void {
-  if (props.isSubmitting) {
-    return
-  }
-
-  emit('toggle-layer-visibility', {
-    layerId: layer.id,
-    isActive: !layer.is_active,
-  })
-}
-
-function openEditMappedZoneModal(zoneId: string): void {
-  editingMappedZoneId.value = zoneId
-  showEditMappedZoneModal.value = true
-}
-
-function closeEditMappedZoneModal(): void {
-  showEditMappedZoneModal.value = false
-  editingMappedZoneId.value = null
-}
-
-function submitMappedZoneUpdate(input: UpdateMappedZoneInput): void {
-  if (!editingMappedZoneId.value || props.isSubmitting) {
-    return
-  }
-
-  emit('update-mapped-zone', {
-    zoneId: editingMappedZoneId.value,
-    input: {
-      zoningLayerId: input.zoningLayerId,
-      name: input.name,
-      description: input.description,
-    },
-  })
-
-  closeEditMappedZoneModal()
-}
-
-function openDeleteMappedZoneDialog(zoneId: string): void {
-  deletingMappedZoneId.value = zoneId
-}
-
-function cancelDeleteMappedZoneDialog(): void {
-  deletingMappedZoneId.value = null
-}
-
-function confirmDeleteMappedZone(): void {
-  if (!deletingMappedZoneId.value || props.isSubmitting) {
-    return
-  }
-
-  emit('delete-mapped-zone', deletingMappedZoneId.value)
-  cancelDeleteMappedZoneDialog()
-}
-
-function focusMappedZone(zoneId: string): void {
-  emit('focus-mapped-zone', zoneId)
-}
+const {
+  addLayerInitialValue,
+  closeAddLayerModal,
+  closeEditLayerModal,
+  closeEditMappedZoneModal,
+  confirmDeleteLayer,
+  confirmDeleteMappedZone,
+  editLayerInitialValue,
+  editMappedZoneInitialValue,
+  focusMappedZone,
+  openAddLayerModal,
+  openDeleteDialog,
+  openDeleteMappedZoneDialog,
+  openEditLayerModal,
+  openEditMappedZoneModal,
+  submitLayer,
+  submitLayerUpdate,
+  submitMappedZoneUpdate,
+  toggleLayerVisibility,
+  cancelDeleteDialog,
+  cancelDeleteMappedZoneDialog,
+  deletingLayerId,
+  deletingMappedZoneId,
+  showAddLayerModal,
+  showEditLayerModal,
+  showEditMappedZoneModal,
+  showLayerList,
+} = useAdminMapRightSidebar(
+  {
+    layers: props.layers,
+    mappedZones: props.mappedZones,
+    isSubmitting: props.isSubmitting,
+  },
+  emit,
+)
 </script>
 
 <template>
@@ -222,7 +87,7 @@ function focusMappedZone(zoneId: string): void {
     <Card class="max-h-[calc(100vh-10rem)] overflow-hidden py-0">
       <CardHeader class="border-b py-4">
         <CardTitle class="flex items-center justify-between text-base">
-          <span>Map Layer</span>
+          <TypographyP as="span" class="m-0 leading-none">Map Layer</TypographyP>
           <Button variant="ghost" size="icon-sm" @click="emit('close')">
             <X class="h-4 w-4" />
           </Button>
@@ -236,7 +101,7 @@ function focusMappedZone(zoneId: string): void {
             class="flex w-full items-center gap-2 rounded-md px-1 py-1 text-left"
             @click="showLayerList = !showLayerList"
           >
-            <p class="text-sm font-semibold">Zoning Layers</p>
+            <TypographySmall as="span" class="text-sm font-semibold">Zoning Layers</TypographySmall>
             <Badge variant="secondary" class="ml-auto">{{ layers.length }}</Badge>
             <ChevronRight
               class="h-4 w-4 transition-transform"
@@ -249,7 +114,7 @@ function focusMappedZone(zoneId: string): void {
           <div v-if="showLayerList" class="space-y-2">
           <Button class="w-full" @click="openAddLayerModal">
             <Plus class="h-4 w-4" />
-            Add Zoning Layer
+            <TypographySmall as="span">Add Zoning Layer</TypographySmall>
           </Button>
 
           <Separator />
@@ -264,7 +129,7 @@ function focusMappedZone(zoneId: string): void {
                 class="h-3 w-3 rounded-sm border"
                 :style="{ backgroundColor: layer.color }"
               />
-              <p class="flex-1 truncate text-sm font-medium">{{ layer.title }}</p>
+              <TypographySmall as="span" class="flex-1 truncate text-sm font-medium">{{ layer.title }}</TypographySmall>
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -304,9 +169,9 @@ function focusMappedZone(zoneId: string): void {
               @select-mapped-zone="focusMappedZone"
             />
           </div>
-          <p v-if="layers.length === 0" class="text-xs text-muted-foreground">
+          <TypographySmall v-if="layers.length === 0" as="p" class="text-xs text-muted-foreground">
             No zoning layers yet. Click Add Zoning Layer.
-          </p>
+          </TypographySmall>
           </div>
         </section>
       </CardContent>

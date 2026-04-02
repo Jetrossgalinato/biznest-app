@@ -3,6 +3,7 @@ import type {
   CreateMappedZoneInput,
   CreateZoningLayerInput,
   MappedZone,
+  MappedZoneRpcRow,
   MapDrawPoint,
   UpdateMappedZoneInput,
   UpdateZoningLayerInput,
@@ -11,22 +12,6 @@ import type {
 
 const ZONING_LAYERS_TABLE = 'zoning_layers'
 const MAPPED_ZONES_TABLE = 'mapped_zones'
-
-interface MappedZoneRpcRow {
-  id: string
-  zoning_layer_id: string
-  zoning_title: string
-  zoning_color: string
-  name: string
-  description: string | null
-  is_visible: boolean
-  geometry: {
-    type?: string
-    coordinates?: unknown
-  } | null
-  created_at: string
-  updated_at: string
-}
 
 function normalizePolygonPoints(points: MapDrawPoint[]): [number, number][] {
   const ring = points.map((point) => [point.lng, point.lat] as [number, number])
