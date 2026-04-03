@@ -1,20 +1,49 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import ActionButtons from '@/views/(admin)/users/components/ActionButtons.vue'
 import Header from '@/views/(admin)/users/components/UsersHeader.vue'
 import UsersTable from '@/views/(admin)/users/components/UsersTable.vue'
+import { fetchAllUsers } from '@/services/users.service'
 import type { UserRoleFilter, UserRow } from '@/views/(admin)/users/types/users-table.types'
 import { filterUserRows, getUserRoleCounts } from '@/views/(admin)/users/utils/users-table.utils'
 
 const rows = ref<UserRow[]>([])
+const isLoadingUsers = ref(false)
+const usersError = ref<string | null>(null)
 const searchQuery = ref('')
 const roleFilter = ref<UserRoleFilter>('all')
+
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+
+  return 'Unable to load users right now.'
+}
+
+const loadUsers = async (): Promise<void> => {
+  isLoadingUsers.value = true
+  usersError.value = null
+
+  try {
+    rows.value = await fetchAllUsers()
+  } catch (error) {
+    rows.value = []
+    usersError.value = getErrorMessage(error)
+  } finally {
+    isLoadingUsers.value = false
+  }
+}
 
 const filteredRows = computed<UserRow[]>(() =>
   filterUserRows(rows.value, searchQuery.value, roleFilter.value),
 )
 
 const roleCounts = computed(() => getUserRoleCounts(rows.value))
+
+onMounted(() => {
+  void loadUsers()
+})
 </script>
 
 <template>
@@ -30,6 +59,14 @@ const roleCounts = computed(() => getUserRoleCounts(rows.value))
         <ActionButtons />
       </template>
     </Header>
+
+    <p
+      v-if="usersError"
+      class="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+    >
+      {{ usersError }}
+    </p>
+    <p v-else-if="isLoadingUsers" class="text-sm text-muted-foreground">Loading users...</p>
 
     <UsersTable :rows="filteredRows" />
   </section>
