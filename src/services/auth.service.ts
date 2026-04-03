@@ -40,6 +40,7 @@ export const signUpWithEmail = async (payload: RegisterPayload): Promise<AuthRes
       data: {
         username: payload.username.trim(),
         role: 'user',
+        city: '',
       },
     },
   })

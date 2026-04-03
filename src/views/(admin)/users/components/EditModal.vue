@@ -29,6 +29,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:isOpen', val: boolean): void
   (e: 'refresh'): void
+  (e: 'updated', user: UserRow): void
 }>()
 
 const { showSuccess, showAlert } = useAlertContext()
@@ -89,7 +90,15 @@ const saveChanges = async () => {
       role: role.value,
       city: city.value,
     })
-    emit('refresh')
+
+    // Fast local update
+    emit('updated', {
+      ...props.user,
+      username: username.value,
+      role: role.value,
+      city: city.value,
+    })
+
     emit('update:isOpen', false)
     showSuccess('User profile updated successfully.')
   } catch (error) {

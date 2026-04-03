@@ -22,6 +22,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:isOpen', val: boolean): void
   (e: 'refresh'): void
+  (e: 'deleted', id: string): void
 }>()
 
 const { showSuccess, showAlert } = useAlertContext()
@@ -38,7 +39,7 @@ const confirmDelete = async () => {
   try {
     isLoading.value = true
     await deleteUserById(props.user.id)
-    emit('refresh')
+    emit('deleted', props.user.id) // Fast local update
     emit('update:isOpen', false)
     showSuccess('User deleted successfully.')
   } catch (error) {

@@ -88,10 +88,12 @@ const selectedUserToDelete = ref<UserRow | null>(null)
 
 const emit = defineEmits<{
   (e: 'refresh'): void
+  (e: 'userDeleted', id: string): void
+  (e: 'userUpdated', user: UserRow): void
 }>()
 
 const openEditModal = (row: UserRow) => {
-  selectedUserToEdit.value = row
+  selectedUserToEdit.value = { ...row } // clone to avoid direct mutation
   editModalOpen.value = true
 }
 
@@ -102,6 +104,14 @@ const openDeleteModal = (row: UserRow) => {
 
 const onRefresh = () => {
   emit('refresh')
+}
+
+const onUserDeleted = (id: string) => {
+  emit('userDeleted', id)
+}
+
+const onUserUpdated = (user: UserRow) => {
+  emit('userUpdated', user)
 }
 </script>
 
@@ -185,11 +195,17 @@ const onRefresh = () => {
     </Pagination>
   </div>
 
-  <EditModal v-model:isOpen="editModalOpen" :user="selectedUserToEdit" @refresh="onRefresh" />
+  <EditModal
+    v-model:isOpen="editModalOpen"
+    :user="selectedUserToEdit"
+    @refresh="onRefresh"
+    @updated="onUserUpdated"
+  />
   <ConfirmDeleteModal
     v-model:isOpen="deleteModalOpen"
     :user="selectedUserToDelete"
     @refresh="onRefresh"
+    @deleted="onUserDeleted"
   />
 </template>
 

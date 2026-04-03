@@ -68,7 +68,17 @@ onMounted(() => {
     </p>
     <p v-else-if="isLoadingUsers" class="text-sm text-muted-foreground">Loading users...</p>
 
-    <UsersTable :rows="filteredRows" />
+    <UsersTable
+      :rows="filteredRows"
+      @refresh="loadUsers"
+      @user-deleted="(id) => (rows = rows.filter((r) => r.id !== id))"
+      @user-updated="
+        (user) => {
+          const idx = rows.findIndex((r) => r.id === user.id)
+          if (idx !== -1) rows[idx] = user
+        }
+      "
+    />
   </section>
 </template>
 
