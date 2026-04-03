@@ -9,13 +9,15 @@ import {
   Shield,
   Users,
 } from 'lucide-vue-next'
-import type { Component } from 'vue'
+import { computed, type Component } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { TypographyLarge, TypographyMuted, TypographySmall } from '@/components/typography'
+import { useAuthStore } from '@/stores/auth.store'
 import type { AdminSidebarIconName } from '@/types/admin-sidebar.types'
 import { managementAdminNavItems, primaryAdminNavItems } from '@/utils/admin-sidebar-nav'
 
 const route = useRoute()
+const authStore = useAuthStore()
 
 const iconMap: Record<AdminSidebarIconName, Component> = {
   dashboard: LayoutDashboard,
@@ -43,6 +45,14 @@ const getNavItemClass = (itemPath: string): string => {
 
   return 'text-foreground/75 hover:bg-foreground/8 hover:text-foreground'
 }
+
+const visibleManagementAdminNavItems = computed(() => {
+  if (authStore.isSuperAdmin) {
+    return managementAdminNavItems
+  }
+
+  return managementAdminNavItems.filter((item) => item.to !== '/admin/users')
+})
 </script>
 
 <template>
@@ -85,7 +95,7 @@ const getNavItemClass = (itemPath: string): string => {
             Administration
           </TypographySmall>
           <ul class="space-y-1">
-            <li v-for="item in managementAdminNavItems" :key="item.to">
+            <li v-for="item in visibleManagementAdminNavItems" :key="item.to">
               <RouterLink
                 :to="item.to"
                 class="focus-visible:ring-ring flex items-center gap-3 rounded-md px-3 py-2 transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
