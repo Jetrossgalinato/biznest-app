@@ -13,6 +13,7 @@ import RegisterView from '@/views/auth/register/RegisterView.vue'
 
 //Admin Routes
 import TestView from '@/views/test/TestView.vue'
+import AdminMap from '@/views/(admin)/map/AdminMap.vue'
 import UsersView from '@/views/(admin)/users/UsersView.vue'
 import ReportsView from '@/views/(admin)/reports/ReportsView.vue'
 
@@ -58,6 +59,12 @@ const router = createRouter({
           name: 'test',
           component: TestView,
           meta: { requiresAuth: true },
+        },
+        {
+          path: 'map',
+          name: 'admin-map',
+          component: AdminMap,
+           meta: { requiresAuth: true },
         },
         {
           path: 'reports',
