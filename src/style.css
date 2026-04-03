@@ -161,36 +161,3 @@
     @apply bg-background text-foreground font-sans antialiased;
   }
 }
-
-@layer components {
-  .map-info-window {
-    font-family: 'SF Pro Display', ui-sans-serif, system-ui, sans-serif;
-    font-size: 0.75rem;
-    font-weight: 600;
-    line-height: 1.1rem;
-    color: var(--foreground);
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    box-shadow: 0 8px 24px rgb(18 35 68 / 18%);
-    padding: 0.35rem 0.55rem;
-    white-space: nowrap;
-  }
-
-  .leaflet-tooltip.map-info-tooltip {
-    font-family: 'SF Pro Display', ui-sans-serif, system-ui, sans-serif;
-    font-size: 0.75rem;
-    font-weight: 600;
-    line-height: 1.1rem;
-    color: var(--foreground);
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    box-shadow: 0 8px 24px rgb(18 35 68 / 18%);
-    padding: 0.35rem 0.55rem;
-  }
-
-  .leaflet-tooltip.map-info-tooltip::before {
-    border-top-color: var(--border);
-  }
-}
