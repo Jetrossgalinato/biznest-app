@@ -1,0 +1,299 @@
+import type { Ref } from 'vue'
+import type {
+  LayerGroup as LeafletLayerGroup,
+  LeafletMouseEvent,
+  Map as LeafletMap,
+} from 'leaflet'
+import type { BarangayFeatureCollection } from '@/types/map.types'
+import type { MapDrawPoint, MappedZone } from '@/types/zoning.types'
+import {
+  getBarangayLabel,
+  getBorderColor,
+  getFeaturePolygons,
+  toLeafletLatLngRings,
+} from '@/utils/map/barangayBorder.utils'
+
+interface LeafletAdapterOptions {
+  containerRef: Ref<HTMLDivElement | null>
+  center: { lat: number; lng: number }
+}
+
+type MapClickHandler = (point: MapDrawPoint) => void
+type DrawPointMoveHandler = (index: number, point: MapDrawPoint) => void
+
+const DRAW_MODE_CURSOR =
+  'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'%3E%3Cpath d=\'M4 20l4-1 9.5-9.5-3-3L5 16z\' fill=\'%231f2937\'/%3E%3Cpath d=\'M14.5 6.5l3 3 1-1a1.6 1.6 0 000-2.2l-.8-.8a1.6 1.6 0 00-2.2 0z\' fill=\'%230f172a\'/%3E%3C/svg%3E") 2 20, crosshair'
+
+export function useLeafletMapAdapter(options: LeafletAdapterOptions) {
+  let leafletMap: LeafletMap | null = null
+  let leafletBarangayLayer: LeafletLayerGroup | null = null
+  let leafletMappedZonesLayer: LeafletLayerGroup | null = null
+  let leafletDrawPreviewLayer: LeafletLayerGroup | null = null
+  let mapClickHandler: MapClickHandler | null = null
+  let drawPointMoveHandler: DrawPointMoveHandler | null = null
+  let leafletClickListener: ((event: LeafletMouseEvent) => void) | null = null
+  let isDrawMode = false
+
+  function applyLeafletCursor(): void {
+    if (!leafletMap) {
+      return
+    }
+
+    const container = leafletMap.getContainer()
+    container.style.cursor = isDrawMode ? DRAW_MODE_CURSOR : ''
+  }
+
+  async function init(): Promise<void> {
+    if (!options.containerRef.value) {
+      return
+    }
+
+    const L = await import('leaflet')
+
+    leafletMap = L.map(options.containerRef.value).setView(
+      [options.center.lat, options.center.lng],
+      14,
+    )
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(leafletMap)
+
+    L.marker([options.center.lat, options.center.lng]).addTo(leafletMap).bindPopup('Butuan City')
+    applyLeafletCursor()
+  }
+
+  function destroyLeafletBarangayLayer(): void {
+    if (leafletBarangayLayer) {
+      leafletBarangayLayer.remove()
+      leafletBarangayLayer = null
+    }
+  }
+
+  function destroyLeafletMappedZonesLayer(): void {
+    if (leafletMappedZonesLayer) {
+      leafletMappedZonesLayer.remove()
+      leafletMappedZonesLayer = null
+    }
+  }
+
+  function destroyLeafletDrawPreviewLayer(): void {
+    if (leafletDrawPreviewLayer) {
+      leafletDrawPreviewLayer.remove()
+      leafletDrawPreviewLayer = null
+    }
+  }
+
+  function clearLeafletClickListener(): void {
+    if (leafletMap && leafletClickListener) {
+      leafletMap.off('click', leafletClickListener)
+      leafletClickListener = null
+    }
+  }
+
+  function destroy(): void {
+    destroyLeafletBarangayLayer()
+    destroyLeafletMappedZonesLayer()
+    destroyLeafletDrawPreviewLayer()
+    clearLeafletClickListener()
+
+    if (leafletMap) {
+      leafletMap.getContainer().style.cursor = ''
+      leafletMap.remove()
+      leafletMap = null
+    }
+  }
+
+  function setDrawMode(enabled: boolean): void {
+    isDrawMode = enabled
+    applyLeafletCursor()
+  }
+
+  function setDrawPointMoveHandler(handler: DrawPointMoveHandler | null): void {
+    drawPointMoveHandler = handler
+  }
+
+  async function renderBarangayBorders(
+    showBarangayBorders: boolean,
+    barangayBorders: BarangayFeatureCollection | null,
+  ): Promise<void> {
+    if (!leafletMap) {
+      return
+    }
+
+    destroyLeafletBarangayLayer()
+
+    if (!showBarangayBorders || !barangayBorders) {
+      return
+    }
+
+    const L = await import('leaflet')
+    const layerGroup = L.layerGroup()
+
+    barangayBorders.features.forEach((feature, featureIndex) => {
+      const borderColor = getBorderColor(featureIndex)
+      const label = getBarangayLabel(feature, featureIndex)
+
+      getFeaturePolygons(feature).forEach((polygonRings) => {
+        const latLngRings = toLeafletLatLngRings(polygonRings)
+
+        L.polygon(latLngRings, {
+          color: borderColor,
+          weight: 2,
+          opacity: 0.95,
+          fillColor: borderColor,
+          fillOpacity: 0.1,
+        })
+          .bindTooltip(label, {
+            className: 'map-info-tooltip',
+            sticky: true,
+          })
+          .addTo(layerGroup)
+      })
+    })
+
+    layerGroup.addTo(leafletMap)
+    leafletBarangayLayer = layerGroup
+  }
+
+  async function renderMappedZones(mappedZones: MappedZone[]): Promise<void> {
+    if (!leafletMap) {
+      return
+    }
+
+    destroyLeafletMappedZonesLayer()
+
+    const L = await import('leaflet')
+    const layerGroup = L.layerGroup()
+
+    mappedZones.forEach((zone) => {
+      if (zone.points.length < 3) {
+        return
+      }
+
+      L.polygon(
+        zone.points.map((point) => [point.lat, point.lng] as [number, number]),
+        {
+          color: zone.zoning_color,
+          weight: 2,
+          opacity: 0.95,
+          fillColor: zone.zoning_color,
+          fillOpacity: 0.22,
+        },
+      )
+        .bindPopup(`<strong>${zone.name}</strong><br/>${zone.zoning_title}`)
+        .addTo(layerGroup)
+    })
+
+    layerGroup.addTo(leafletMap)
+    leafletMappedZonesLayer = layerGroup
+  }
+
+  async function renderDrawPreview(drawPoints: MapDrawPoint[]): Promise<void> {
+    if (!leafletMap) {
+      return
+    }
+
+    destroyLeafletDrawPreviewLayer()
+
+    if (drawPoints.length === 0) {
+      return
+    }
+
+    const L = await import('leaflet')
+    const layerGroup = L.layerGroup()
+    const positions = drawPoints.map((point) => [point.lat, point.lng] as [number, number])
+
+    if (drawPoints.length >= 3) {
+      L.polygon(positions, {
+        color: '#2563eb',
+        weight: 2,
+        fillColor: '#2563eb',
+        fillOpacity: 0.16,
+        dashArray: '5, 5',
+      }).addTo(layerGroup)
+    } else if (drawPoints.length >= 2) {
+      L.polyline(positions, {
+        color: '#2563eb',
+        weight: 2,
+        dashArray: '5, 5',
+      }).addTo(layerGroup)
+    }
+
+    positions.forEach((position, index) => {
+      const marker = L.marker(position, {
+        draggable: Boolean(isDrawMode && drawPointMoveHandler),
+        icon: L.divIcon({
+          className: '',
+          html: '<span style="display:block;width:10px;height:10px;border-radius:9999px;background:#3b82f6;border:1px solid #1d4ed8;"></span>',
+          iconSize: [10, 10],
+          iconAnchor: [5, 5],
+        }),
+      }).addTo(layerGroup)
+
+      if (isDrawMode && drawPointMoveHandler) {
+        marker.on('dragend', () => {
+          const latLng = marker.getLatLng()
+          drawPointMoveHandler?.(index, {
+            lat: latLng.lat,
+            lng: latLng.lng,
+          })
+        })
+      }
+    })
+
+    layerGroup.addTo(leafletMap)
+    leafletDrawPreviewLayer = layerGroup
+  }
+
+  function setMapClickHandler(handler: MapClickHandler | null): void {
+    mapClickHandler = handler
+    clearLeafletClickListener()
+
+    if (!leafletMap || !mapClickHandler) {
+      return
+    }
+
+    leafletClickListener = (event) => {
+      mapClickHandler?.({
+        lat: event.latlng.lat,
+        lng: event.latlng.lng,
+      })
+    }
+
+    leafletMap.on('click', leafletClickListener)
+  }
+
+  async function focusOnZone(points: MapDrawPoint[]): Promise<void> {
+    if (!leafletMap || points.length === 0) {
+      return
+    }
+
+    const center = points.reduce(
+      (accumulator, point) => {
+        return {
+          lat: accumulator.lat + point.lat,
+          lng: accumulator.lng + point.lng,
+        }
+      },
+      { lat: 0, lng: 0 },
+    )
+
+    const lat = center.lat / points.length
+    const lng = center.lng / points.length
+    leafletMap.setView([lat, lng], 16)
+  }
+
+  return {
+    init,
+    destroy,
+    renderBarangayBorders,
+    renderMappedZones,
+    renderDrawPreview,
+    setMapClickHandler,
+    setDrawMode,
+    setDrawPointMoveHandler,
+    focusOnZone,
+  }
+}

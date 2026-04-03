@@ -37,3 +37,19 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+
+#environment variables
+.env
+
+# Copilot local instruction variant
+.github/copilot-instruction-2.md
+
+# Local-only Supabase migration draft
+supabase/migrations/20260328_001_zoning_layers_and_mapped_zones.sql
+
+# Ignore all Supabase migrations in this workspace
+supabase/migrations/
+
+# Future local-only Supabase drafts
+supabase/migrations/draft_*.sql
+supabase/migrations/*_local.sql
