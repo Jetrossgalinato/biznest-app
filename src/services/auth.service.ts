@@ -32,6 +32,23 @@ export const signInWithEmail = async (payload: LoginPayload): Promise<AuthRespon
 
 export const signUpWithEmail = async (payload: RegisterPayload): Promise<AuthResponse> => {
   const supabase = getSupabaseClient()
+  let role = 'user'
+
+  if (payload.inviteToken) {
+    const { data: isValidInvite, error: rpcError } = await supabase.rpc('consume_admin_invite', {
+      token_to_consume: payload.inviteToken
+    })
+
+    if (rpcError) {
+      throw new Error(getAuthErrorMessage(rpcError))
+    }
+
+    if (!isValidInvite) {
+      throw new Error('The invitation link is invalid or has already been used.')
+    }
+    
+    role = 'admin'
+  }
 
   const { data, error } = await supabase.auth.signUp({
     email: payload.email.trim(),
@@ -39,6 +56,8 @@ export const signUpWithEmail = async (payload: RegisterPayload): Promise<AuthRes
     options: {
       data: {
         username: payload.username.trim(),
+        role: role,
+        city: '',
       },
     },
   })

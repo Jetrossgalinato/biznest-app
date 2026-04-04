@@ -18,9 +18,12 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import type { UserRow } from '@/views/(admin)/users/types/users-table.types'
-import { USER_STATUS_CLASS } from '@/views/(admin)/users/utils/users-table.utils'
+import { getRoleBadgeVariant } from '@/views/(admin)/users/utils/users-table.utils'
 import { Pencil, Trash2 } from 'lucide-vue-next'
+import EditModal from './EditModal.vue'
+import ConfirmDeleteModal from './ConfirmDeleteModal.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -31,7 +34,7 @@ const props = withDefaults(
   },
 )
 
-const pageSize = 5
+const pageSize = 10
 const currentPage = ref(1)
 
 const totalPages = computed(() => Math.max(1, Math.ceil(props.rows.length / pageSize)))
@@ -76,6 +79,42 @@ watch(
     currentPage.value = 1
   },
 )
+
+// Modal State
+const editModalOpen = ref(false)
+const deleteModalOpen = ref(false)
+
+// Data State for Modals
+const selectedUserToEdit = ref<UserRow | null>(null)
+const selectedUserToDelete = ref<UserRow | null>(null)
+
+const emit = defineEmits<{
+  (e: 'refresh'): void
+  (e: 'userDeleted', id: string): void
+  (e: 'userUpdated', user: UserRow): void
+}>()
+
+const openEditModal = (row: UserRow) => {
+  selectedUserToEdit.value = { ...row } // clone to avoid direct mutation
+  editModalOpen.value = true
+}
+
+const openDeleteModal = (row: UserRow) => {
+  selectedUserToDelete.value = row
+  deleteModalOpen.value = true
+}
+
+const onRefresh = () => {
+  emit('refresh')
+}
+
+const onUserDeleted = (id: string) => {
+  emit('userDeleted', id)
+}
+
+const onUserUpdated = (user: UserRow) => {
+  emit('userUpdated', user)
+}
 </script>
 
 <template>
@@ -89,8 +128,8 @@ watch(
             <TableHead class="px-4 py-3 font-medium">ID</TableHead>
             <TableHead class="px-4 py-3 font-medium">Name</TableHead>
             <TableHead class="px-4 py-3 font-medium">Email</TableHead>
+            <TableHead class="px-4 py-3 font-medium">City</TableHead>
             <TableHead class="px-4 py-3 font-medium">Role</TableHead>
-            <TableHead class="px-4 py-3 font-medium">Status</TableHead>
             <TableHead class="px-4 py-3 text-right font-medium">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -98,24 +137,19 @@ watch(
         <TableBody>
           <TableRow v-for="row in paginatedRows" :key="row.id">
             <TableCell class="px-4 py-3 font-medium">{{ row.id }}</TableCell>
-            <TableCell class="px-4 py-3">{{ row.fullName }}</TableCell>
+            <TableCell class="px-4 py-3">{{ row.username }}</TableCell>
             <TableCell class="px-4 py-3 text-muted-foreground">{{ row.email }}</TableCell>
-            <TableCell class="px-4 py-3">{{ row.role }}</TableCell>
+            <TableCell class="px-4 py-3">{{ row.city }}</TableCell>
             <TableCell class="px-4 py-3">
-              <span
-                class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
-                :class="USER_STATUS_CLASS[row.status]"
-              >
-                {{ row.status }}
-              </span>
+              <Badge :variant="getRoleBadgeVariant(row.role)">{{ row.role }}</Badge>
             </TableCell>
             <TableCell class="px-4 py-3">
               <div class="flex items-center justify-end gap-2">
-                <Button size="sm" variant="outline">
+                <Button size="sm" variant="outline" @click="openEditModal(row)">
                   <Pencil class="size-4" />
                   Edit
                 </Button>
-                <Button size="sm" variant="destructive">
+                <Button size="sm" variant="destructive" @click="openDeleteModal(row)">
                   <Trash2 class="size-4" />
                   Delete
                 </Button>
@@ -166,6 +200,19 @@ watch(
       </PaginationContent>
     </Pagination>
   </div>
+
+  <EditModal
+    v-model:isOpen="editModalOpen"
+    :user="selectedUserToEdit"
+    @refresh="onRefresh"
+    @updated="onUserUpdated"
+  />
+  <ConfirmDeleteModal
+    v-model:isOpen="deleteModalOpen"
+    :user="selectedUserToDelete"
+    @refresh="onRefresh"
+    @deleted="onUserDeleted"
+  />
 </template>
 
 <style scoped></style>
