@@ -40,22 +40,33 @@ const role = ref('user')
 const city = ref('')
 const isLoading = ref(false)
 
-const PHILIPPINE_CITIES = [
-  'Manila',
-  'Quezon City',
-  'Cebu City',
-  'Davao City',
-  'Makati',
-  'Taguig',
-  'Pasig',
-  'Mandaluyong',
-  'Iloilo City',
-  'Cagayan de Oro',
-  'Zamboanga City',
-  'Antipolo',
-  'Caloocan',
-  'Valenzuela',
-]
+const PHILIPPINE_CITIES = ref<string[]>([])
+const isFetchingCities = ref(false)
+
+const fetchCities = async () => {
+  if (PHILIPPINE_CITIES.value.length > 0) return
+  try {
+    isFetchingCities.value = true
+    const response = await fetch('https://psgc.gitlab.io/api/cities')
+    if (!response.ok) throw new Error('Failed to fetch cities')
+    const data = await response.json()
+    PHILIPPINE_CITIES.value = data.map((c: { name: string }) => c.name).sort()
+  } catch (error) {
+    console.error('Error fetching cities:', error)
+  } finally {
+    isFetchingCities.value = false
+  }
+}
+
+watch(
+  () => props.isOpen,
+  (isOpen) => {
+    if (isOpen) {
+      fetchCities()
+    }
+  },
+  { immediate: true },
+)
 
 watch(
   () => props.user,
@@ -178,9 +189,15 @@ const saveChanges = async () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" class="w-[375px] max-h-[300px] overflow-y-auto">
-              <DropdownMenuItem v-for="c in PHILIPPINE_CITIES" :key="c" @click="city = c">
-                {{ c }}
-              </DropdownMenuItem>
+              <div v-if="isFetchingCities" class="p-4 text-center text-sm text-muted-foreground">
+                <Loader2 class="mr-2 h-4 w-4 animate-spin inline-block" />
+                Loading cities...
+              </div>
+              <template v-else>
+                <DropdownMenuItem v-for="c in PHILIPPINE_CITIES" :key="c" @click="city = c">
+                  {{ c }}
+                </DropdownMenuItem>
+              </template>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
