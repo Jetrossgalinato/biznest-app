@@ -6,6 +6,7 @@ import { Download, Upload, UserPlus } from 'lucide-vue-next'
 const emit = defineEmits<{
   (e: 'export'): void
   (e: 'import', file: File): void
+  (e: 'add-user'): void
 }>()
 
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -29,11 +30,15 @@ const handleFileUpload = (event: Event) => {
 const triggerExport = () => {
   emit('export')
 }
+
+const triggerAddUser = () => {
+  emit('add-user')
+}
 </script>
 
 <template>
   <div class="flex flex-wrap items-center justify-end gap-2">
-    <Button variant="default">
+    <Button variant="default" @click="triggerAddUser">
       <UserPlus class="size-4" />
       Add User
     </Button>

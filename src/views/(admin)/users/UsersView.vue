@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import ActionButtons from '@/views/(admin)/users/components/ActionButtons.vue'
 import Header from '@/views/(admin)/users/components/UsersHeader.vue'
 import UsersTable from '@/views/(admin)/users/components/UsersTable.vue'
+import AddUserModal from '@/views/(admin)/users/components/AddUserModal.vue'
 import { fetchAllUsers } from '@/services/users.service'
 import type { UserRoleFilter, UserRow } from '@/views/(admin)/users/types/users-table.types'
 import {
@@ -17,6 +18,7 @@ const isLoadingUsers = ref(false)
 const usersError = ref<string | null>(null)
 const searchQuery = ref('')
 const roleFilter = ref<UserRoleFilter>('all')
+const addUserModalOpen = ref(false)
 
 const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error && error.message) {
@@ -65,6 +67,10 @@ const handleImportCsv = async (file: File) => {
   }
 }
 
+const handleAddUser = () => {
+  addUserModalOpen.value = true
+}
+
 onMounted(() => {
   void loadUsers()
 })
@@ -80,7 +86,7 @@ onMounted(() => {
       :superadmin-count="roleCounts.superadmin"
     >
       <template #actions>
-        <ActionButtons @export="handleExportCsv" @import="handleImportCsv" />
+        <ActionButtons @export="handleExportCsv" @import="handleImportCsv" @add-user="handleAddUser" />
       </template>
     </Header>
 
@@ -103,6 +109,8 @@ onMounted(() => {
         }
       "
     />
+    
+    <AddUserModal v-model:isOpen="addUserModalOpen" />
   </section>
 </template>
 
