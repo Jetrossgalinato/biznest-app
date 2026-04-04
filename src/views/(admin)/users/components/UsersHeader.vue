@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useVModel } from '@vueuse/core'
 import { Input } from '@/components/ui/input'
 import {
   DropdownMenu,
@@ -23,12 +24,11 @@ const emit = defineEmits<{
   (e: 'update:roleFilter', value: UserRoleFilter): void
 }>()
 
-const onSearchQueryChange = (value: string | number): void => {
-  emit('update:searchQuery', String(value))
-}
+const searchQueryModel = useVModel(props, 'searchQuery', emit)
+const roleFilterModel = useVModel(props, 'roleFilter', emit)
 
 const setRoleFilter = (value: UserRoleFilter): void => {
-  emit('update:roleFilter', value)
+  roleFilterModel.value = value
 }
 </script>
 
@@ -46,8 +46,7 @@ const setRoleFilter = (value: UserRoleFilter): void => {
         <Input
           class="pl-9"
           placeholder="Search by ID, name, or email"
-          :model-value="props.searchQuery"
-          @update:model-value="onSearchQueryChange"
+          v-model="searchQueryModel"
         />
       </div>
 
@@ -58,7 +57,7 @@ const setRoleFilter = (value: UserRoleFilter): void => {
             class="w-full justify-between xl:w-56"
             aria-label="Filter users by role"
           >
-            {{ props.roleFilter === 'all' ? 'All roles' : props.roleFilter }}
+            {{ roleFilterModel === 'all' ? 'All roles' : roleFilterModel }}
             <ChevronDown class="size-4 opacity-70" />
           </Button>
         </DropdownMenuTrigger>
