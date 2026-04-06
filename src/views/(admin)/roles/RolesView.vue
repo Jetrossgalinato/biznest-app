@@ -4,16 +4,8 @@ import RolesHeader from '@/views/(admin)/roles/components/RolesHeader.vue'
 import RolesButtons from '@/views/(admin)/roles/components/RolesButtons.vue'
 import RolesModal from '@/views/(admin)/roles/components/RolesModal.vue'
 import RolesCards from '@/views/(admin)/roles/components/RolesCards.vue'
-
-type RoleStatus = 'active' | 'inactive'
-
-interface RoleRow {
-  id: string
-  name: string
-  description: string
-  status: RoleStatus
-  isSystem: boolean
-}
+import type { RoleRow } from '@/views/(admin)/roles/types/roles.types'
+import { getRoleCounts, filterRoleRows } from '@/views/(admin)/roles/utils/roles.utils'
 
 const searchQuery = ref('')
 const addRoleModalOpen = ref(false)
@@ -49,33 +41,9 @@ const rows = ref<RoleRow[]>([
   },
 ])
 
-const roleCounts = computed(() => {
-  const total = rows.value.length
-  const active = rows.value.filter((row) => row.status === 'active').length
-  const system = rows.value.filter((row) => row.isSystem).length
+const roleCounts = computed(() => getRoleCounts(rows.value))
 
-  return {
-    total,
-    active,
-    system,
-  }
-})
-
-const filteredRows = computed<RoleRow[]>(() => {
-  const normalizedQuery = searchQuery.value.trim().toLowerCase()
-
-  if (!normalizedQuery) {
-    return rows.value
-  }
-
-  return rows.value.filter((row) => {
-    return (
-      row.name.toLowerCase().includes(normalizedQuery) ||
-      row.description.toLowerCase().includes(normalizedQuery) ||
-      row.id.toLowerCase().includes(normalizedQuery)
-    )
-  })
-})
+const filteredRows = computed<RoleRow[]>(() => filterRoleRows(rows.value, searchQuery.value))
 
 const openAddRoleModal = (): void => {
   addRoleModalOpen.value = true

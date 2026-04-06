@@ -6,14 +6,7 @@ import {
   CardDescription,
   CardContent,
 } from '@/components/ui/card'
-
-interface RoleRow {
-  id: string
-  name: string
-  description: string
-  status: 'active' | 'inactive'
-  isSystem: boolean
-}
+import type { RoleRow } from '@/views/(admin)/roles/types/roles.types'
 
 defineProps<{
   roles: RoleRow[]
