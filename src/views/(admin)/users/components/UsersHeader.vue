@@ -40,14 +40,10 @@ const setRoleFilter = (value: UserRoleFilter): void => {
     </div>
     <p class="text-sm text-muted-foreground">View and manage all platform users from one place.</p>
 
-    <div class="flex flex-col gap-3 xl:flex-row xl:items-center">
+    <div class="flex flex-col gap-3 mt-2 xl:flex-row xl:items-center">
       <div class="relative w-full xl:max-w-md">
         <Search class="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-        <Input
-          class="pl-9"
-          placeholder="Search by ID, name, or email"
-          v-model="searchQueryModel"
-        />
+        <Input class="pl-9" placeholder="Search by ID, name, or email" v-model="searchQueryModel" />
       </div>
 
       <DropdownMenu>
