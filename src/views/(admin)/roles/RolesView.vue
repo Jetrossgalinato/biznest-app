@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import RolesHeader from '@/views/(admin)/roles/components/RolesHeader.vue'
 import RolesButtons from '@/views/(admin)/roles/components/RolesButtons.vue'
 import RolesModal from '@/views/(admin)/roles/components/RolesModal.vue'
+import RolesCards from '@/views/(admin)/roles/components/RolesCards.vue'
 
 type RoleStatus = 'active' | 'inactive'
 
@@ -98,39 +99,7 @@ const refreshRoles = (): void => {
       </template>
     </RolesHeader>
 
-    <div class="rounded-lg border">
-      <div class="border-b bg-muted/10 px-4 py-3">
-        <p class="text-sm font-medium">Role List</p>
-      </div>
-
-      <div class="divide-y">
-        <div v-if="filteredRows.length === 0" class="px-4 py-6 text-sm text-muted-foreground">
-          No roles found for your search.
-        </div>
-
-        <div
-          v-for="role in filteredRows"
-          :key="role.id"
-          class="flex items-start justify-between gap-3 px-4 py-3"
-        >
-          <div>
-            <p class="text-sm font-semibold">{{ role.name }}</p>
-            <p class="text-xs text-muted-foreground">{{ role.description }}</p>
-          </div>
-
-          <span
-            class="inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium"
-            :class="
-              role.status === 'active'
-                ? 'border-green-500/30 bg-green-500/10 text-green-700'
-                : 'border-muted-foreground/30 bg-muted text-muted-foreground'
-            "
-          >
-            {{ role.status }}
-          </span>
-        </div>
-      </div>
-    </div>
+    <RolesCards :roles="filteredRows" />
 
     <RolesModal v-model:isOpen="addRoleModalOpen" />
   </section>
