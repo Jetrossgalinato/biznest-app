@@ -9,23 +9,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import type { UserRow } from '@/views/(admin)/users/types/users-table.types'
-import { deleteUserById } from '@/services/users.service'
 import { useAlertContext } from '@/composables/useAlert'
 import { Loader2 } from 'lucide-vue-next'
 
-const props = defineProps<{
-  isOpen: boolean
-  user: UserRow | null
-}>()
+const props = withDefaults(
+  defineProps<{
+    isOpen: boolean
+    title?: string
+    description?: string
+    itemName?: string
+    itemType?: string
+    action?: () => Promise<void>
+  }>(),
+  {
+    title: 'Confirm Deletion',
+    itemType: 'item',
+  },
+)
 
 const emit = defineEmits<{
   (e: 'update:isOpen', val: boolean): void
-  (e: 'refresh'): void
-  (e: 'deleted', id: string): void
+  (e: 'confirm'): void
 }>()
 
-const { showSuccess, showAlert } = useAlertContext()
+const { showAlert } = useAlertContext()
 const isLoading = ref(false)
 
 const closeModal = () => {
@@ -34,19 +41,20 @@ const closeModal = () => {
 }
 
 const confirmDelete = async () => {
-  if (!props.user) return
+  if (!props.action) {
+    emit('confirm')
+    return
+  }
 
   try {
     isLoading.value = true
-    await deleteUserById(props.user.id)
-    emit('deleted', props.user.id) // Fast local update
+    await props.action()
     emit('update:isOpen', false)
-    showSuccess('User deleted successfully.')
   } catch (error) {
-    console.error('Failed to delete user:', error)
+    console.error('Action failed:', error)
     emit('update:isOpen', false)
     showAlert({
-      title: 'Delete Failed',
+      title: 'Action Failed',
       description: error instanceof Error ? error.message : 'An unexpected error occurred.',
       tone: 'destructive',
     })
@@ -67,11 +75,17 @@ const confirmDelete = async () => {
   >
     <DialogContent class="sm:max-w-[425px]">
       <DialogHeader>
-        <DialogTitle class="text-destructive">Confirm Deletion</DialogTitle>
+        <DialogTitle class="text-destructive">{{ props.title }}</DialogTitle>
         <DialogDescription>
-          Are you sure you want to delete
-          <strong class="text-foreground" v-if="props.user">{{ props.user.username }}</strong
-          ><span v-else>this user</span>? This action cannot be undone.
+          <template v-if="props.description">
+            {{ props.description }}
+          </template>
+          <template v-else>
+            Are you sure you want to delete
+            <strong class="text-foreground" v-if="props.itemName">{{ props.itemName }}</strong
+            ><span v-else>this {{ props.itemType }}</span
+            >? This action cannot be undone.
+          </template>
         </DialogDescription>
       </DialogHeader>
 
