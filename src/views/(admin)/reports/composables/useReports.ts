@@ -1,5 +1,5 @@
 import { onMounted, computed } from 'vue'
-import { useReportsStore } from '@/stores/reportsStore'
+import { useReportsStore } from '@/stores/reports.store'
 import { usePdfExport } from './usePdfExport'
 
 export function useReports() {
@@ -43,7 +43,7 @@ export function useReports() {
     error,
     currentTab,
     canExport,
-    
+
     // Handlers
     handleTabChange,
     handleExport,
