@@ -33,6 +33,17 @@ const refreshRoles = async (): Promise<void> => {
   await loadRoles()
 }
 
+const handleRoleCreated = (newRole: RoleRow): void => {
+  const alreadyExists = rows.value.some((role) => role.id === newRole.id)
+
+  if (!alreadyExists) {
+    rows.value = [...rows.value, newRole].sort((a, b) => a.title.localeCompare(b.title))
+  }
+
+  // Keep optimistic UI instant, then sync with server state in the background.
+  void refreshRoles()
+}
+
 onMounted(() => {
   loadRoles()
 })
@@ -47,10 +58,10 @@ onMounted(() => {
       :system-roles-count="roleCounts.system"
     >
       <template #actions>
-        <RolesButtons @add-role="openAddRoleModal" @refresh="refreshRoles" />
+        <RolesButtons @add-role="openAddRoleModal" />
       </template>
     </RolesHeader>
-    <RolesCards :roles="filteredRows" />
-    <RolesModal v-model:isOpen="addRoleModalOpen" />
+    <RolesCards :roles="filteredRows" @deleted="refreshRoles" />
+    <RolesModal v-model:isOpen="addRoleModalOpen" @created="handleRoleCreated" />
   </section>
 </template>

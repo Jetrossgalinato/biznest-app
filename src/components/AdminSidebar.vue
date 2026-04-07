@@ -9,15 +9,17 @@ import {
   Shield,
   Users,
 } from 'lucide-vue-next'
-import { computed, type Component } from 'vue'
+import { computed, onMounted, ref, watch, type Component } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { TypographyLarge, TypographyMuted, TypographySmall } from '@/components/typography'
+import { fetchAllowedPagePathsForRoleTitle } from '@/services/roles.service'
 import { useAuthStore } from '@/stores/auth.store'
 import type { AdminSidebarIconName } from '@/types/admin-sidebar.types'
 import { managementAdminNavItems, primaryAdminNavItems } from '@/utils/admin-sidebar-nav'
 
 const route = useRoute()
 const authStore = useAuthStore()
+const allowedPagePaths = ref<string[] | null>(null)
 
 const iconMap: Record<AdminSidebarIconName, Component> = {
   dashboard: LayoutDashboard,
@@ -51,8 +53,45 @@ const visibleManagementAdminNavItems = computed(() => {
     return managementAdminNavItems
   }
 
-  return managementAdminNavItems.filter((item) => item.to !== '/admin/users')
+  const allowedPaths = new Set(allowedPagePaths.value ?? [])
+  return managementAdminNavItems.filter((item) => allowedPaths.has(item.to))
 })
+
+const visiblePrimaryAdminNavItems = computed(() => {
+  if (authStore.isSuperAdmin) {
+    return primaryAdminNavItems
+  }
+
+  const allowedPaths = new Set(allowedPagePaths.value ?? [])
+  return primaryAdminNavItems.filter((item) => allowedPaths.has(item.to))
+})
+
+const loadAllowedSidebarPaths = async (): Promise<void> => {
+  const roleTitle = authStore.user?.user_metadata?.role
+
+  if (!roleTitle || authStore.isSuperAdmin) {
+    allowedPagePaths.value = []
+    return
+  }
+
+  try {
+    allowedPagePaths.value = await fetchAllowedPagePathsForRoleTitle(roleTitle)
+  } catch (error) {
+    allowedPagePaths.value = []
+    console.error('Failed to load sidebar permissions:', error)
+  }
+}
+
+onMounted(() => {
+  void loadAllowedSidebarPaths()
+})
+
+watch(
+  () => authStore.user?.user_metadata?.role,
+  () => {
+    void loadAllowedSidebarPaths()
+  },
+)
 </script>
 
 <template>
@@ -72,7 +111,7 @@ const visibleManagementAdminNavItems = computed(() => {
             Overview
           </TypographySmall>
           <ul class="space-y-1">
-            <li v-for="item in primaryAdminNavItems" :key="item.to">
+            <li v-for="item in visiblePrimaryAdminNavItems" :key="item.to">
               <RouterLink
                 :to="item.to"
                 class="focus-visible:ring-ring flex items-center gap-3 rounded-md px-3 py-2 transition-colors focus-visible:ring-2 focus-visible:outline-hidden"

@@ -24,7 +24,9 @@ import type { UserRow } from '@/views/(admin)/users/types/users-table.types'
 import { getRoleBadgeVariant } from '@/utils/roles.utils'
 import { Pencil, Trash2 } from 'lucide-vue-next'
 import EditModal from './EditModal.vue'
-import ConfirmDeleteModal from './ConfirmDeleteModal.vue'
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue'
+import { deleteUserById } from '@/services/users.service'
+import { useAlertContext } from '@/composables/useAlert'
 
 const props = withDefaults(
   defineProps<{
@@ -111,6 +113,16 @@ const onRefresh = () => {
 
 const onUserDeleted = (id: string) => {
   emit('userDeleted', id)
+}
+
+const { showSuccess } = useAlertContext()
+
+const deleteAction = async () => {
+  if (!selectedUserToDelete.value) return
+  const id = selectedUserToDelete.value.id
+  await deleteUserById(id)
+  onUserDeleted(id)
+  showSuccess('User deleted successfully.')
 }
 
 const onUserUpdated = (user: UserRow) => {
@@ -210,9 +222,10 @@ const onUserUpdated = (user: UserRow) => {
   />
   <ConfirmDeleteModal
     v-model:isOpen="deleteModalOpen"
-    :user="selectedUserToDelete"
+    :item-name="selectedUserToDelete?.username"
+    item-type="user"
+    :action="deleteAction"
     @refresh="onRefresh"
-    @deleted="onUserDeleted"
   />
 </template>
 
