@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { TypographyH3, TypographyMuted, TypographySmall } from '@/components/typography'
 import { ShieldCheck } from 'lucide-vue-next'
+import type { RolesHeaderProps } from '@/views/(admin)/roles/types/roles.types'
 
-const props = defineProps<{
-  searchQuery: string
-  totalRolesCount: number
-}>()
+const props = defineProps<RolesHeaderProps>()
 </script>
 
 <template>
