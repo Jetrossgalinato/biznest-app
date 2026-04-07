@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useAlertContext } from '@/composables/useAlert'
+import { createRole } from '@/services/roles.service'
+import type { RoleRow } from '@/views/(admin)/roles/types/roles.types'
 import {
   Dialog,
   DialogContent,
@@ -18,10 +21,15 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:isOpen', value: boolean): void
+  (e: 'created', role: RoleRow): void
 }>()
 
 const roleName = ref('')
 const roleDescription = ref('')
+const isSubmitting = ref(false)
+const errorMessage = ref('')
+
+const { showSuccess, showAlert } = useAlertContext()
 
 const resetForm = (): void => {
   roleName.value = ''
@@ -31,14 +39,46 @@ const resetForm = (): void => {
 const onOpenChange = (open: boolean): void => {
   if (!open) {
     resetForm()
+    errorMessage.value = ''
   }
 
   emit('update:isOpen', open)
 }
 
-const handleCreate = (): void => {
-  resetForm()
-  emit('update:isOpen', false)
+const handleCreate = async (): Promise<void> => {
+  const title = roleName.value.trim()
+  const description = roleDescription.value.trim()
+
+  if (!title) {
+    errorMessage.value = 'Role name is required.'
+    showAlert({
+      title: 'Missing Role Name',
+      description: 'Please enter a role name.',
+      tone: 'destructive',
+    })
+    return
+  }
+
+  isSubmitting.value = true
+  errorMessage.value = ''
+
+  try {
+    const createdRole = await createRole({ title, description })
+    showSuccess('Role created successfully!')
+    emit('created', createdRole)
+    resetForm()
+    emit('update:isOpen', false)
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Unable to create role right now.'
+    errorMessage.value = msg
+    showAlert({
+      title: 'Failed to Create Role',
+      description: msg,
+      tone: 'destructive',
+    })
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 
@@ -66,11 +106,17 @@ const handleCreate = (): void => {
             placeholder="Briefly describe the role responsibility"
           />
         </div>
+
+        <p v-if="errorMessage" class="text-sm text-destructive">{{ errorMessage }}</p>
       </div>
 
       <DialogFooter>
-        <Button variant="outline" @click="onOpenChange(false)">Cancel</Button>
-        <Button @click="handleCreate">Create Role</Button>
+        <Button variant="outline" :disabled="isSubmitting" @click="onOpenChange(false)"
+          >Cancel</Button
+        >
+        <Button :disabled="isSubmitting" @click="handleCreate">
+          {{ isSubmitting ? 'Creating...' : 'Create Role' }}
+        </Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>

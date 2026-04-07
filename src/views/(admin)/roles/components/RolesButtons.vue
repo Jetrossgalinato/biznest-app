@@ -1,18 +1,13 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
-import { Plus, RefreshCw } from 'lucide-vue-next'
+import { Plus } from 'lucide-vue-next'
 
 const emit = defineEmits<{
   (e: 'add-role'): void
-  (e: 'refresh'): void
 }>()
 
 const triggerAddRole = () => {
   emit('add-role')
-}
-
-const triggerRefresh = () => {
-  emit('refresh')
 }
 </script>
 
@@ -21,10 +16,6 @@ const triggerRefresh = () => {
     <Button variant="default" @click="triggerAddRole">
       <Plus class="size-4" />
       Add Role
-    </Button>
-    <Button variant="outline" @click="triggerRefresh">
-      <RefreshCw class="size-4" />
-      Refresh
     </Button>
   </div>
 </template>
