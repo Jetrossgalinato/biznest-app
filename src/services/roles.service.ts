@@ -79,3 +79,16 @@ export const createRole = async (payload: CreateRolePayload): Promise<RoleRow> =
     description: data?.description || payload.description,
   }
 }
+
+export const deleteRole = async (id: string): Promise<void> => {
+  const supabase = getSupabaseClient()
+
+  const { error } = await supabase
+    .from(ROLES_TABLE)
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    throw new Error(getErrorMessage(error))
+  }
+}

@@ -58,10 +58,10 @@ onMounted(() => {
       :system-roles-count="roleCounts.system"
     >
       <template #actions>
-        <RolesButtons @add-role="openAddRoleModal" @refresh="refreshRoles" />
+        <RolesButtons @add-role="openAddRoleModal" />
       </template>
     </RolesHeader>
-    <RolesCards :roles="filteredRows" />
+    <RolesCards :roles="filteredRows" @deleted="refreshRoles" />
     <RolesModal v-model:isOpen="addRoleModalOpen" @created="handleRoleCreated" />
   </section>
 </template>
