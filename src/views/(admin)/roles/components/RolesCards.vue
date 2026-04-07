@@ -6,16 +6,22 @@ import { Button } from '@/components/ui/button'
 import { Trash2 } from 'lucide-vue-next'
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue'
 import PermissionModal from '@/views/(admin)/roles/components/PermissionModal.vue'
-import type { RoleRow } from '@/views/(admin)/roles/types/roles.types'
+import type {
+  RolePermissionsMap,
+  RoleRow,
+  RolesCardsProps,
+} from '@/views/(admin)/roles/types/roles.types'
 import type { AdminNavItem } from '@/types/admin-sidebar.types'
 import { getRoleBadgeVariant } from '@/utils/roles.utils'
 import { managementAdminNavItems, primaryAdminNavItems } from '@/utils/admin-sidebar-nav'
 import { deleteRole, fetchRolePagePaths, replaceRolePagePaths } from '@/services/roles.service'
 import { useAlertContext } from '@/composables/useAlert'
+import {
+  getSelectedPagesForRole,
+  togglePermissionPage,
+} from '@/views/(admin)/roles/utils/roles.utils'
 
-defineProps<{
-  roles: RoleRow[]
-}>()
+defineProps<RolesCardsProps>()
 
 const emit = defineEmits<{
   (e: 'deleted', id: string): void
@@ -28,7 +34,7 @@ const isModalOpen = ref(false)
 const roleToDelete = ref<RoleRow | null>(null)
 const isPermissionModalOpen = ref(false)
 const roleToConfigure = ref<RoleRow | null>(null)
-const rolePermissions = ref<Record<string, string[]>>({})
+const rolePermissions = ref<RolePermissionsMap>({})
 const isPermissionLoading = ref(false)
 const isPermissionSaving = ref(false)
 
@@ -50,13 +56,7 @@ const handleDeleteAction = async () => {
 }
 
 const selectedPermissionPages = computed<string[]>(() => {
-  const roleId = roleToConfigure.value?.id
-
-  if (!roleId) {
-    return []
-  }
-
-  return rolePermissions.value[roleId] ?? []
+  return getSelectedPagesForRole(rolePermissions.value, roleToConfigure.value?.id)
 })
 
 const openPermissionModal = async (role: RoleRow): Promise<void> => {
@@ -90,17 +90,9 @@ const togglePermission = (pagePath: string, checked: boolean): void => {
     return
   }
 
-  const currentPermissions = new Set(rolePermissions.value[roleId] ?? [])
-
-  if (checked) {
-    currentPermissions.add(pagePath)
-  } else {
-    currentPermissions.delete(pagePath)
-  }
-
   rolePermissions.value = {
     ...rolePermissions.value,
-    [roleId]: Array.from(currentPermissions),
+    [roleId]: togglePermissionPage(rolePermissions.value[roleId] ?? [], pagePath, checked),
   }
 }
 

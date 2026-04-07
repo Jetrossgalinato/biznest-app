@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useAlertContext } from '@/composables/useAlert'
 import { createRole } from '@/services/roles.service'
-import type { RoleRow } from '@/views/(admin)/roles/types/roles.types'
+import type { RoleRow, RolesModalProps } from '@/views/(admin)/roles/types/roles.types'
 import {
   Dialog,
   DialogContent,
@@ -15,9 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-const props = defineProps<{
-  isOpen: boolean
-}>()
+const props = defineProps<RolesModalProps>()
 
 const emit = defineEmits<{
   (e: 'update:isOpen', value: boolean): void

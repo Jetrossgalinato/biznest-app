@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, type Component } from 'vue'
 import type { AdminNavItem, AdminSidebarIconName } from '@/types/admin-sidebar.types'
-import type { RoleRow } from '@/views/(admin)/roles/types/roles.types'
+import type { PermissionModalProps } from '@/views/(admin)/roles/types/roles.types'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -21,6 +21,11 @@ import {
   Shield,
   Users,
 } from 'lucide-vue-next'
+import {
+  buildPermissionPageGroups,
+  isGroupFullySelected,
+  isGroupPartiallySelected,
+} from '@/views/(admin)/roles/utils/roles.utils'
 
 const iconMap: Record<AdminSidebarIconName, Component> = {
   dashboard: LayoutDashboard,
@@ -33,20 +38,10 @@ const iconMap: Record<AdminSidebarIconName, Component> = {
   settings: Settings,
 }
 
-const props = withDefaults(
-  defineProps<{
-    isOpen: boolean
-    role: RoleRow | null
-    pages: AdminNavItem[]
-    selectedPages: string[]
-    isLoading?: boolean
-    isSaving?: boolean
-  }>(),
-  {
-    isLoading: false,
-    isSaving: false,
-  },
-)
+const props = withDefaults(defineProps<PermissionModalProps>(), {
+  isLoading: false,
+  isSaving: false,
+})
 
 const emit = defineEmits<{
   (e: 'update:isOpen', value: boolean): void
@@ -74,26 +69,8 @@ const onGroupCheckboxChange = (groupItems: AdminNavItem[], event: Event): void =
   })
 }
 
-const isGroupFullySelected = (groupItems: AdminNavItem[]) => {
-  return groupItems.length > 0 && groupItems.every((item) => props.selectedPages.includes(item.to))
-}
-
-const isGroupPartiallySelected = (groupItems: AdminNavItem[]) => {
-  const selectedCount = groupItems.filter((item) => props.selectedPages.includes(item.to)).length
-  return selectedCount > 0 && selectedCount < groupItems.length
-}
-
 const pageGroups = computed(() => {
-  return [
-    {
-      title: 'User Pages',
-      items: [] as AdminNavItem[],
-    },
-    {
-      title: 'Admin Pages',
-      items: props.pages,
-    },
-  ]
+  return buildPermissionPageGroups(props.pages)
 })
 </script>
 
@@ -127,8 +104,8 @@ const pageGroups = computed(() => {
                 <input
                   type="checkbox"
                   class="h-4 w-4"
-                  :checked="isGroupFullySelected(group.items)"
-                  :indeterminate.prop="isGroupPartiallySelected(group.items)"
+                  :checked="isGroupFullySelected(group.items, props.selectedPages)"
+                  :indeterminate.prop="isGroupPartiallySelected(group.items, props.selectedPages)"
                   :disabled="group.items.length === 0 || props.isLoading || props.isSaving"
                   @change="onGroupCheckboxChange(group.items, $event)"
                 />
