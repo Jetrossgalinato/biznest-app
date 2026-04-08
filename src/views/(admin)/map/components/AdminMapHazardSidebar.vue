@@ -235,7 +235,6 @@ function submitUpdate(payload: UpdateHazardInput): void {
       :is-submitting="props.isSubmitting"
       :initial-value="editingHazard"
       @close="closeEditModal"
-      @submit-create="submitCreate"
       @submit-update="submitUpdate"
     />
 

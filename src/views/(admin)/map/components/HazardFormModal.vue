@@ -187,14 +187,14 @@ function submit(): void {
 <template>
   <div
     v-if="open"
-    class="fixed inset-0 z-10000 flex items-center justify-center bg-black/40 p-4"
+    class="fixed inset-0 z-10000 flex items-stretch justify-end bg-black/40"
   >
-    <Card class="w-full max-w-lg py-0">
-      <CardHeader class="border-b py-4">
+    <Card class="flex h-screen w-full max-w-full rounded-none border-0 border-l shadow-2xl sm:w-[41.6667vw] sm:max-w-[41.6667vw] py-0">
+      <CardHeader class="shrink-0 border-b py-4 px-5">
         <CardTitle class="text-base">{{ modalTitle }}</CardTitle>
       </CardHeader>
-      <CardContent class="space-y-3 p-4">
-        <div class="grid grid-cols-2 gap-3">
+      <CardContent class="flex-1 space-y-3 overflow-y-auto p-5">
+        <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
           <div class="col-span-2 space-y-1">
             <label class="text-xs font-medium">Hazard Name</label>
             <Input v-model="form.name" placeholder="e.g. River Flooding" />
@@ -301,7 +301,7 @@ function submit(): void {
           </div>
         </div>
 
-        <div class="flex justify-end gap-2">
+        <div class="sticky bottom-0 mt-4 flex justify-end gap-2 border-t bg-background/95 py-4">
           <Button variant="outline" @click="emit('close')">Cancel</Button>
           <Button :disabled="!canSubmit" @click="submit">{{ submitLabel }}</Button>
         </div>

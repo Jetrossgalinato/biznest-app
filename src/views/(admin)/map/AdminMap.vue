@@ -235,11 +235,16 @@ function buildHazardGeometry(): HazardGeometry | null {
   }
 
   const toCoordinates = (point: MapDrawPoint): [number, number] => [point.lng, point.lat]
+  const firstDrawPoint = hazardDrawPoints.value[0]
+
+  if (!firstDrawPoint) {
+    return null
+  }
 
   if (hazardPlacementType.value === 'point') {
     return {
       type: 'Point',
-      coordinates: toCoordinates(hazardDrawPoints.value[0]),
+      coordinates: toCoordinates(firstDrawPoint),
     }
   }
 
@@ -782,7 +787,6 @@ async function handleDeleteHazard(hazardId: HazardId): Promise<void> {
         :point-count="hazardDrawPoints.length"
         @close="handleHazardPlacementCancel"
         @submit-create="handleSaveHazard"
-        @submit-update="handleUpdateHazard"
       />
 
       <MappedZoneFormModal
