@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type {
-  CreateHazardInput,
+  CreateHazardFormInput,
   Hazard,
   HazardGeometry,
   HazardGeometryType,
@@ -20,9 +20,14 @@ import type {
   UpdateHazardInput,
 } from '@/types/hazard.types'
 
-const severityOptions: HazardSeverity[] = ['low', 'medium', 'high', 'critical']
-const statusOptions: HazardStatus[] = ['reported', 'verified', 'resolved', 'dismissed']
-const geometryOptions: HazardGeometryType[] = ['Point', 'LineString', 'Polygon']
+const severityOptions: HazardSeverity[] = ['low', 'moderate', 'high', 'critical']
+const statusOptions: HazardStatus[] = ['reported', 'under_review', 'active', 'mitigated', 'resolved']
+const geometryOptions: HazardGeometryType[] = ['point', 'linestring', 'polygon']
+const placementLabels: Record<HazardGeometryType, string> = {
+  point: 'Pin',
+  linestring: 'Draw Line',
+  polygon: 'Draw Polygon',
+}
 
 const props = withDefaults(
   defineProps<{
@@ -30,16 +35,20 @@ const props = withDefaults(
     mode: 'add' | 'edit'
     isSubmitting?: boolean
     initialValue?: Hazard | null
+    placementType?: HazardGeometryType | null
+    pointCount?: number
   }>(),
   {
     isSubmitting: false,
     initialValue: null,
+    placementType: null,
+    pointCount: 0,
   },
 )
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'submit-create', payload: CreateHazardInput): void
+  (e: 'submit-create', payload: CreateHazardFormInput): void
   (e: 'submit-update', payload: UpdateHazardInput): void
 }>()
 
@@ -50,7 +59,7 @@ const form = reactive({
   status: 'reported' as HazardStatus,
   location_name: '',
   description: '',
-  geometry_type: 'Point' as HazardGeometryType,
+  geometry_type: 'point' as HazardGeometryType,
   coordinatesText: '[125.5406, 8.9475]',
 })
 
@@ -60,7 +69,7 @@ const parseError = reactive({
 
 const modalTitle = computed(() => (props.mode === 'add' ? 'Add Hazard' : 'Update Hazard'))
 const submitLabel = computed(() => (props.mode === 'add' ? 'Create Hazard' : 'Update Hazard'))
-
+const isAddMode = computed(() => props.mode === 'add')
 const canSubmit = computed(() => {
   return form.name.trim().length > 0 && form.category.trim().length > 0 && !props.isSubmitting
 })
@@ -92,8 +101,8 @@ watch(
     form.status = 'reported'
     form.location_name = ''
     form.description = ''
-    form.geometry_type = 'Point'
-    form.coordinatesText = '[125.5406, 8.9475]'
+    form.geometry_type = 'point'
+    form.coordinatesText = ''
   },
   { deep: true, immediate: true },
 )
@@ -104,7 +113,7 @@ function buildGeometry(): HazardGeometry | null {
   try {
     const raw = JSON.parse(form.coordinatesText)
 
-    if (form.geometry_type === 'Point') {
+    if (form.geometry_type === 'point') {
       if (!Array.isArray(raw) || raw.length !== 2) {
         parseError.message = 'Point coordinates must be [lng, lat].'
         return null
@@ -116,14 +125,14 @@ function buildGeometry(): HazardGeometry | null {
       }
     }
 
-    if (form.geometry_type === 'LineString') {
+    if (form.geometry_type === 'linestring') {
       if (!Array.isArray(raw) || raw.length < 2) {
         parseError.message = 'LineString coordinates must be [[lng, lat], ...].'
         return null
       }
 
       return {
-        type: 'LineString',
+          type: 'LineString',
         coordinates: raw.map((point) => [Number(point[0]), Number(point[1])]),
       }
     }
@@ -148,11 +157,6 @@ function submit(): void {
     return
   }
 
-  const geometry = buildGeometry()
-  if (!geometry) {
-    return
-  }
-
   const basePayload = {
     name: form.name.trim(),
     category: form.category.trim(),
@@ -160,8 +164,6 @@ function submit(): void {
     status: form.status,
     location_name: form.location_name.trim() || null,
     description: form.description.trim() || null,
-    geometry,
-    geometry_type: form.geometry_type,
   }
 
   if (props.mode === 'add') {
@@ -169,7 +171,16 @@ function submit(): void {
     return
   }
 
-  emit('submit-update', basePayload)
+  const geometry = buildGeometry()
+  if (!geometry) {
+    return
+  }
+
+  emit('submit-update', {
+    ...basePayload,
+    geometry,
+    geometry_type: form.geometry_type,
+  })
 }
 </script>
 
@@ -227,7 +238,28 @@ function submit(): void {
             </Select>
           </div>
 
-          <div class="space-y-1">
+          <div v-if="isAddMode" class="col-span-2 rounded-md border bg-muted/30 p-3">
+            <div class="space-y-1">
+              <label class="text-xs font-medium">Placement Type</label>
+              <p class="text-sm font-medium">
+                {{ placementType ? placementLabels[placementType] : 'No placement selected' }}
+              </p>
+              <p class="text-xs text-muted-foreground">
+                {{
+                  placementType === 'point'
+                    ? 'Click the map once to place the hazard pin.'
+                    : placementType === 'linestring'
+                      ? 'Draw the hazard line on the map, then finish to continue.'
+                      : 'Draw the hazard polygon on the map, then finish to continue.'
+                }}
+              </p>
+              <p class="text-xs text-muted-foreground">
+                Captured points: <span class="font-medium">{{ pointCount }}</span>
+              </p>
+            </div>
+          </div>
+
+          <div v-else class="space-y-1">
             <label class="text-xs font-medium">Geometry Type</label>
             <Select v-model="form.geometry_type">
               <SelectTrigger>
@@ -235,7 +267,7 @@ function submit(): void {
               </SelectTrigger>
               <SelectContent class="z-10002">
                 <SelectItem v-for="geometry in geometryOptions" :key="geometry" :value="geometry">
-                  {{ geometry }}
+                  {{ placementLabels[geometry] }}
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -251,16 +283,16 @@ function submit(): void {
             />
           </div>
 
-          <div class="col-span-2 space-y-1">
+          <div v-if="!isAddMode" class="col-span-2 space-y-1">
             <label class="text-xs font-medium">Coordinates (JSON)</label>
             <textarea
               v-model="form.coordinatesText"
               rows="4"
               class="border-input focus-visible:border-ring focus-visible:ring-ring/50 font-mono w-full rounded-md border bg-transparent px-3 py-2 text-xs outline-none focus-visible:ring-[3px]"
               :placeholder="
-                form.geometry_type === 'Point'
+                form.geometry_type === 'point'
                   ? '[125.5406, 8.9475]'
-                  : form.geometry_type === 'LineString'
+                  : form.geometry_type === 'linestring'
                     ? '[[125.54, 8.94], [125.55, 8.95]]'
                     : '[[[125.54, 8.94], [125.55, 8.94], [125.55, 8.95], [125.54, 8.94]]]'
               "

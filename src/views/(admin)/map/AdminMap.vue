@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Layers, PenTool, TriangleAlert } from 'lucide-vue-next'
 import Map from '@/components/map/Map.vue'
 import { useBarangayBorders } from '@/composables/map/useBarangayBorders'
+import HazardFormModal from '@/views/(admin)/map/components/HazardFormModal.vue'
 import AdminMapRightSidebar from '@/views/(admin)/map/components/AdminMapRightSidebar.vue'
 import AdminMapHazardSidebar from '@/views/(admin)/map/components/AdminMapHazardSidebar.vue'
 import MappedZoneFormModal from '@/views/(admin)/map/components/MappedZoneFormModal.vue'
@@ -36,8 +37,10 @@ import type {
   ZoningLayer,
 } from '@/types/zoning.types'
 import type {
-  CreateHazardInput,
+  CreateHazardFormInput,
   Hazard,
+  HazardGeometry,
+  HazardGeometryType,
   HazardId,
   UpdateHazardInput,
 } from '@/types/hazard.types'
@@ -61,6 +64,9 @@ const hazardError = ref('')
 const selectedHazardId = ref<HazardId | null>(null)
 const hazardsEnabled = ref(false)
 const hasLoadedHazards = ref(false)
+const hazardPlacementType = ref<HazardGeometryType | null>(null)
+const hazardDrawPoints = ref<MapDrawPoint[]>([])
+const showHazardFormModal = ref(false)
 
 const zoningError = ref('')
 
@@ -139,6 +145,163 @@ async function ensureHazardsLoaded(): Promise<void> {
   await loadHazards(false)
 }
 
+const isHazardPlacementActive = computed(() => hazardPlacementType.value !== null)
+
+const activeDrawPoints = computed(() =>
+  isHazardPlacementActive.value ? hazardDrawPoints.value : drawPoints.value,
+)
+
+const isAnyDrawModeActive = computed(() => isDrawMode.value || isHazardPlacementActive.value)
+
+function startHazardPlacement(placementType: HazardGeometryType): void {
+  if (isDrawMode.value) {
+    cancelDrawZoneMode()
+  }
+
+  hazardError.value = ''
+  hazardPlacementType.value = placementType
+  hazardDrawPoints.value = []
+  showHazardFormModal.value = false
+}
+
+function cancelHazardPlacement(): void {
+  hazardPlacementType.value = null
+  hazardDrawPoints.value = []
+  showHazardFormModal.value = false
+}
+
+function appendHazardPoint(point: MapDrawPoint): void {
+  if (!hazardPlacementType.value) {
+    return
+  }
+
+  if (hazardPlacementType.value === 'point') {
+    hazardDrawPoints.value = [point]
+    showHazardFormModal.value = true
+    return
+  }
+
+  hazardDrawPoints.value = [...hazardDrawPoints.value, point]
+}
+
+function moveHazardPoint(index: number, point: MapDrawPoint): void {
+  if (!hazardPlacementType.value || hazardPlacementType.value === 'point') {
+    return
+  }
+
+  hazardDrawPoints.value = hazardDrawPoints.value.map((existingPoint, existingPointIndex) => {
+    if (existingPointIndex !== index) {
+      return existingPoint
+    }
+
+    return point
+  })
+}
+
+function undoLastHazardPoint(): void {
+  if (!hazardPlacementType.value || hazardDrawPoints.value.length === 0) {
+    return
+  }
+
+  if (hazardPlacementType.value === 'point') {
+    hazardDrawPoints.value = []
+    return
+  }
+
+  hazardDrawPoints.value = hazardDrawPoints.value.slice(0, -1)
+}
+
+function finishHazardPlacement(): void {
+  if (!hazardPlacementType.value) {
+    return
+  }
+
+  if (hazardPlacementType.value === 'linestring' && hazardDrawPoints.value.length < 2) {
+    hazardError.value = 'Draw at least 2 points to create a hazard line.'
+    return
+  }
+
+  if (hazardPlacementType.value === 'polygon' && hazardDrawPoints.value.length < 3) {
+    hazardError.value = 'Draw at least 3 points to create a hazard polygon.'
+    return
+  }
+
+  showHazardFormModal.value = true
+}
+
+function buildHazardGeometry(): HazardGeometry | null {
+  if (!hazardPlacementType.value || hazardDrawPoints.value.length === 0) {
+    return null
+  }
+
+  const toCoordinates = (point: MapDrawPoint): [number, number] => [point.lng, point.lat]
+
+  if (hazardPlacementType.value === 'point') {
+    return {
+      type: 'Point',
+      coordinates: toCoordinates(hazardDrawPoints.value[0]),
+    }
+  }
+
+  if (hazardPlacementType.value === 'linestring') {
+    return {
+      type: 'LineString',
+      coordinates: hazardDrawPoints.value.map(toCoordinates),
+    }
+  }
+
+  const ring = hazardDrawPoints.value.map(toCoordinates)
+  const [firstPoint] = ring
+  const lastPoint = ring[ring.length - 1]
+
+  if (
+    firstPoint
+    && lastPoint
+    && (firstPoint[0] !== lastPoint[0] || firstPoint[1] !== lastPoint[1])
+  ) {
+    ring.push(firstPoint)
+  }
+
+  return {
+    type: 'Polygon',
+    coordinates: [ring],
+  }
+}
+
+async function handleSaveHazard(payload: CreateHazardFormInput): Promise<void> {
+  if (!hazardPlacementType.value) {
+    hazardError.value = 'Choose a hazard placement type first.'
+    return
+  }
+
+  const geometry = buildHazardGeometry()
+  if (!geometry) {
+    hazardError.value = 'Capture a valid geometry on the map first.'
+    return
+  }
+
+  isSavingHazard.value = true
+  hazardError.value = ''
+
+  try {
+    const createdHazard = await createHazard({
+      ...payload,
+      geometry,
+      geometry_type: hazardPlacementType.value,
+    })
+
+    hazards.value = [createdHazard, ...hazards.value]
+    hasLoadedHazards.value = true
+    hazardsEnabled.value = true
+    selectedHazardId.value = createdHazard.id
+    cancelHazardPlacement()
+  } catch (error) {
+    hazardError.value = error instanceof Error ? error.message : 'Failed to create hazard.'
+  } finally {
+    isSavingHazard.value = false
+  }
+}
+
 async function handleCreateLayer(payload: CreateZoningLayerInput): Promise<void> {
   isSavingLayer.value = true
   zoningError.value = ''
@@ -214,6 +377,10 @@ async function handleToggleLayerVisibility(payload: {
 }
 
 function startDrawZoneMode(): void {
+  if (isHazardPlacementActive.value) {
+    cancelHazardPlacement()
+  }
+
   if (zoningLayers.value.length === 0) {
     zoningError.value = 'Please add at least one zoning layer before drawing a zone.'
     return
@@ -225,6 +392,16 @@ function startDrawZoneMode(): void {
 }
 
 function handleMapClick(point: MapDrawPoint): void {
+  if (isHazardPlacementActive.value) {
+    appendHazardPoint(point)
+
+    if (hazardPlacementType.value === 'point') {
+      showHazardFormModal.value = true
+    }
+
+    return
+  }
+
   if (!isDrawMode.value) {
     return
   }
@@ -233,6 +410,11 @@ function handleMapClick(point: MapDrawPoint): void {
 }
 
 function handleDrawPointMove(index: number, point: MapDrawPoint): void {
+  if (isHazardPlacementActive.value) {
+    moveHazardPoint(index, point)
+    return
+  }
+
   if (!isDrawMode.value) {
     return
   }
@@ -247,6 +429,11 @@ function handleDrawPointMove(index: number, point: MapDrawPoint): void {
 }
 
 function undoLastDrawPoint(): void {
+  if (isHazardPlacementActive.value) {
+    undoLastHazardPoint()
+    return
+  }
+
   if (!isDrawMode.value || drawPoints.value.length === 0) {
     return
   }
@@ -255,7 +442,9 @@ function undoLastDrawPoint(): void {
 }
 
 function handleDrawUndoShortcut(event: KeyboardEvent): void {
-  if (!isDrawMode.value || drawPoints.value.length === 0) {
+  const activePoints = isHazardPlacementActive.value ? hazardDrawPoints.value : drawPoints.value
+
+  if (!isAnyDrawModeActive.value || activePoints.length === 0) {
     return
   }
 
@@ -305,6 +494,10 @@ function finishDrawZoneMode(): void {
   }
 
   showMappedZoneModal.value = true
+}
+
+function handleHazardPlacementCancel(): void {
+  cancelHazardPlacement()
 }
 
 async function handleSaveMappedZone(
@@ -371,25 +564,12 @@ async function handleToggleHazardsEnabled(enabled: boolean): Promise<void> {
   }
 }
 
-function handleSelectHazard(hazardId: HazardId): void {
-  selectedHazardId.value = hazardId
+function handleStartCreateHazard(placementType: HazardGeometryType): void {
+  startHazardPlacement(placementType)
 }
 
-async function handleCreateHazard(input: CreateHazardInput): Promise<void> {
-  isSavingHazard.value = true
-  hazardError.value = ''
-
-  try {
-    const createdHazard = await createHazard(input)
-    hazards.value = [createdHazard, ...hazards.value]
-    hasLoadedHazards.value = true
-    hazardsEnabled.value = true
-    selectedHazardId.value = createdHazard.id
-  } catch (error) {
-    hazardError.value = error instanceof Error ? error.message : 'Failed to create hazard.'
-  } finally {
-    isSavingHazard.value = false
-  }
+function handleSelectHazard(hazardId: HazardId): void {
+  selectedHazardId.value = hazardId
 }
 
 async function handleUpdateHazard(payload: {
@@ -471,8 +651,8 @@ async function handleDeleteHazard(hazardId: HazardId): Promise<void> {
         :show-hazards="hazardsEnabled"
         :selected-hazard-id="selectedHazardId"
         :selected-mapped-zone-id="selectedMappedZoneId"
-        :draw-points="drawPoints"
-        :is-draw-mode="isDrawMode"
+        :draw-points="activeDrawPoints"
+        :is-draw-mode="isAnyDrawModeActive"
         @map-click="handleMapClick"
         @draw-point-move="handleDrawPointMove"
       />
@@ -507,7 +687,7 @@ async function handleDeleteHazard(hazardId: HazardId): Promise<void> {
         @refresh="loadHazards(true)"
         @toggle-enabled="handleToggleHazardsEnabled"
         @select-hazard="handleSelectHazard"
-        @create-hazard="handleCreateHazard"
+        @start-create-hazard="handleStartCreateHazard"
         @update-hazard="handleUpdateHazard"
         @delete-hazard="handleDeleteHazard"
       />
@@ -528,7 +708,45 @@ async function handleDeleteHazard(hazardId: HazardId): Promise<void> {
       />
 
       <div
-        v-if="isDrawMode"
+        v-if="isHazardPlacementActive"
+        class="absolute left-3 top-3 z-9999 rounded-md border bg-card/95 px-3 py-2 text-xs shadow"
+      >
+        <TypographySmall as="p" class="font-medium text-xs">Hazard Placement Active</TypographySmall>
+        <TypographyMuted as="p" class="text-xs text-muted-foreground">
+          {{ hazardPlacementType === 'point' ? 'Click the map once to place a pin.' : `Captured ${hazardDrawPoints.length} points` }}
+        </TypographyMuted>
+        <div class="mt-2 flex gap-2">
+          <Button
+            v-if="hazardPlacementType !== 'point'"
+            size="sm"
+            variant="outline"
+            :disabled="hazardDrawPoints.length === 0"
+            @click="undoLastHazardPoint"
+          >
+            <TypographySmall as="span">Undo</TypographySmall>
+          </Button>
+          <Button size="sm" variant="outline" @click="handleHazardPlacementCancel">
+            <TypographySmall as="span">Cancel</TypographySmall>
+          </Button>
+          <Button
+            v-if="hazardPlacementType !== 'point'"
+            size="sm"
+            :disabled="
+              hazardPlacementType === 'linestring'
+                ? hazardDrawPoints.length < 2
+                : hazardDrawPoints.length < 3
+            "
+            @click="finishHazardPlacement"
+          >
+            <TypographySmall as="span">
+              {{ hazardPlacementType === 'linestring' ? 'Finish Line' : 'Finish Polygon' }}
+            </TypographySmall>
+          </Button>
+        </div>
+      </div>
+
+      <div
+        v-else-if="isDrawMode"
         class="absolute left-3 top-3 z-9999 rounded-md border bg-card/95 px-3 py-2 text-xs shadow"
       >
         <TypographySmall as="p" class="font-medium text-xs">Draw Mode Active</TypographySmall>
@@ -555,6 +773,17 @@ async function handleDeleteHazard(hazardId: HazardId): Promise<void> {
       >
         <TypographySmall as="p" class="m-0 text-xs text-destructive">{{ zoningError }}</TypographySmall>
       </div>
+
+      <HazardFormModal
+        :open="showHazardFormModal"
+        mode="add"
+        :is-submitting="isSavingHazard"
+        :placement-type="hazardPlacementType"
+        :point-count="hazardDrawPoints.length"
+        @close="handleHazardPlacementCancel"
+        @submit-create="handleSaveHazard"
+        @submit-update="handleUpdateHazard"
+      />
 
       <MappedZoneFormModal
         :open="showMappedZoneModal"

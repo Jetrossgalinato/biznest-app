@@ -24,16 +24,58 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 }
 
 const toGeometryType = (geometry: HazardGeometry): HazardGeometryType => {
-  return geometry.type
+      return geometry.type.toLowerCase() as HazardGeometryType
+}
+
+const formatPoint = (point: [number, number]): string => {
+  return `${point[0]} ${point[1]}`
+}
+
+const normalizeRing = (ring: [number, number][]): [number, number][] => {
+  if (ring.length === 0) {
+    return ring
+  }
+
+  const firstPoint = ring[0]
+  const lastPoint = ring[ring.length - 1]
+  if (!firstPoint || !lastPoint) {
+    return ring
+  }
+
+  const isClosed = firstPoint[0] === lastPoint[0] && firstPoint[1] === lastPoint[1]
+
+  if (isClosed) {
+    return ring
+  }
+
+  return [...ring, firstPoint]
+}
+
+const toPostgisGeometry = (geometry: HazardGeometry): string => {
+  if (geometry.type === 'Point') {
+    return `SRID=4326;POINT(${formatPoint(geometry.coordinates)})`
+  }
+
+  if (geometry.type === 'LineString') {
+    const coordinates = geometry.coordinates.map(formatPoint).join(', ')
+    return `SRID=4326;LINESTRING(${coordinates})`
+  }
+
+  const rings = geometry.coordinates
+    .map((ring) => normalizeRing(ring).map(formatPoint).join(', '))
+    .map((ring) => `(${ring})`)
+    .join(', ')
+
+  return `SRID=4326;POLYGON(${rings})`
 }
 
 const toHazard = (value: unknown): Hazard => {
   return value as Hazard
 }
 
-  const escapeLikeValue = (value: string): string => {
-    return value.replace(/[%,]/g, '').trim()
-  }
+const escapeLikeValue = (value: string): string => {
+  return value.replace(/[%,]/g, '').trim()
+}
 
 const normalizePage = (page?: number): number => {
   if (!page || page < 1) {
@@ -49,6 +91,11 @@ const normalizePageSize = (pageSize?: number): number => {
   }
 
   return Math.min(Math.floor(pageSize), MAX_PAGE_SIZE)
+}
+
+type HazardWritePayload = Record<string, unknown> & {
+  geometry?: string | HazardGeometry
+  geometry_type?: string
 }
 
 export const listHazards = async (query: HazardListQuery = {}): Promise<HazardListResponse> => {
@@ -161,7 +208,8 @@ export const createHazard = async (input: CreateHazardInput): Promise<Hazard> =>
 
   const payload = {
     ...input,
-    geometry_type: toGeometryType(input.geometry),
+    geometry: toPostgisGeometry(input.geometry),
+    geometry_type: input.geometry_type ?? toGeometryType(input.geometry),
   }
 
   const { data, error } = await supabase.from(HAZARDS_TABLE).insert(payload).select('*').single()
@@ -176,12 +224,20 @@ export const createHazard = async (input: CreateHazardInput): Promise<Hazard> =>
 export const updateHazard = async (id: HazardId, input: UpdateHazardInput): Promise<Hazard> => {
   const supabase = getSupabaseClient()
 
-  const payload: UpdateHazardInput = {
+  const payload: HazardWritePayload = {
     ...input,
   }
 
-  if (payload.geometry) {
-    payload.geometry_type = toGeometryType(payload.geometry)
+  const geometry = payload.geometry
+
+  if (payload.geometry_type) {
+    payload.geometry_type = payload.geometry_type.toLowerCase() as HazardGeometryType
+  } else if (geometry && typeof geometry !== 'string') {
+    payload.geometry_type = toGeometryType(geometry)
+  }
+
+  if (geometry && typeof geometry !== 'string') {
+    payload.geometry = toPostgisGeometry(geometry)
   }
 
   if (Object.keys(payload).length === 0) {

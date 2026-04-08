@@ -4,11 +4,22 @@ import { AlertTriangle, Pencil, Plus, RefreshCcw, Trash2, X } from 'lucide-vue-n
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Separator } from '@/components/ui/separator'
 import { TypographyMuted, TypographyP, TypographySmall } from '@/components/typography'
 import HazardFormModal from '@/views/(admin)/map/components/HazardFormModal.vue'
 import ZoningLayerDeleteDialog from '@/views/(admin)/map/components/ZoningLayerDeleteDialog.vue'
-import type { CreateHazardInput, Hazard, HazardId, UpdateHazardInput } from '@/types/hazard.types'
+import type {
+  Hazard,
+  HazardGeometryType,
+  HazardId,
+  UpdateHazardInput,
+} from '@/types/hazard.types'
 
 const props = withDefaults(
   defineProps<{
@@ -35,12 +46,11 @@ const emit = defineEmits<{
   (e: 'refresh'): void
   (e: 'toggle-enabled', enabled: boolean): void
   (e: 'select-hazard', hazardId: HazardId): void
-  (e: 'create-hazard', payload: CreateHazardInput): void
+  (e: 'start-create-hazard', placementType: HazardGeometryType): void
   (e: 'update-hazard', payload: { hazardId: HazardId; input: UpdateHazardInput }): void
   (e: 'delete-hazard', hazardId: HazardId): void
 }>()
 
-const showAddModal = ref(false)
 const editingHazard = ref<Hazard | null>(null)
 const deletingHazardId = ref<HazardId | null>(null)
 
@@ -52,8 +62,8 @@ const selectedHazard = computed(() => {
   return props.hazards.find((hazard) => hazard.id === props.selectedHazardId) ?? null
 })
 
-function openAddModal(): void {
-  showAddModal.value = true
+function startCreateHazard(placementType: HazardGeometryType): void {
+  emit('start-create-hazard', placementType)
 }
 
 function openEditModal(hazardId: HazardId): void {
@@ -62,10 +72,6 @@ function openEditModal(hazardId: HazardId): void {
 
 function closeEditModal(): void {
   editingHazard.value = null
-}
-
-function closeAddModal(): void {
-  showAddModal.value = false
 }
 
 function requestDelete(hazardId: HazardId): void {
@@ -83,11 +89,6 @@ function confirmDelete(): void {
 
   emit('delete-hazard', deletingHazardId.value)
   deletingHazardId.value = null
-}
-
-function submitCreate(payload: CreateHazardInput): void {
-  emit('create-hazard', payload)
-  showAddModal.value = false
 }
 
 function submitUpdate(payload: UpdateHazardInput): void {
@@ -144,13 +145,18 @@ function submitUpdate(payload: UpdateHazardInput): void {
             <RefreshCcw class="h-4 w-4" />
           </Button>
 
-          <Button
-            size="icon-sm"
-            :disabled="props.isLoading || props.isSubmitting"
-            @click="openAddModal"
-          >
-            <Plus class="h-4 w-4" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <Button size="icon-sm" :disabled="props.isLoading || props.isSubmitting">
+                <Plus class="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" class="z-10002">
+              <DropdownMenuItem @click="startCreateHazard('point')">Pin</DropdownMenuItem>
+              <DropdownMenuItem @click="startCreateHazard('linestring')">Draw Line</DropdownMenuItem>
+              <DropdownMenuItem @click="startCreateHazard('polygon')">Draw Polygon</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <TypographyMuted v-if="props.isLoading" as="p" class="text-xs text-muted-foreground">
@@ -222,14 +228,6 @@ function submitUpdate(payload: UpdateHazardInput): void {
       </CardContent>
     </Card>
 
-    <HazardFormModal
-      :open="showAddModal"
-      mode="add"
-      :is-submitting="props.isSubmitting"
-      @close="closeAddModal"
-      @submit-create="submitCreate"
-      @submit-update="submitUpdate"
-    />
 
     <HazardFormModal
       :open="Boolean(editingHazard)"
