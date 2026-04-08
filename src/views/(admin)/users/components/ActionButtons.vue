@@ -1,19 +1,28 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
-import { Download, Upload, UserPlus } from 'lucide-vue-next'
+import { Upload, UserPlus } from 'lucide-vue-next'
+
+const emit = defineEmits<{
+  (e: 'export'): void
+  (e: 'add-user'): void
+}>()
+
+const triggerExport = () => {
+  emit('export')
+}
+
+const triggerAddUser = () => {
+  emit('add-user')
+}
 </script>
 
 <template>
-  <div class="flex w-full flex-wrap items-center justify-end gap-2">
-    <Button variant="default">
+  <div class="flex flex-wrap items-center justify-end gap-2">
+    <Button variant="default" @click="triggerAddUser">
       <UserPlus class="size-4" />
       Add User
     </Button>
-    <Button variant="outline">
-      <Download class="size-4" />
-      Import
-    </Button>
-    <Button variant="outline">
+    <Button variant="outline" @click="triggerExport">
       <Upload class="size-4" />
       Export
     </Button>

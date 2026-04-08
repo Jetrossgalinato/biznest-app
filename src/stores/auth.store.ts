@@ -11,6 +11,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 2. Getters
   const isLoggedIn = computed(() => !!session.value)
+  const isSuperAdmin = computed(() => user.value?.user_metadata?.role === 'superadmin')
 
   // 3. Actions
   const initializeAuthListener = () => {
@@ -43,6 +44,7 @@ export const useAuthStore = defineStore('auth', () => {
     session,
     isInitialized,
     isLoggedIn,
+    isSuperAdmin,
     initializeAuthListener,
     logout,
   }

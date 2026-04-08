@@ -53,10 +53,14 @@ const handleSubmit = async (): Promise<void> => {
   isSubmitting.value = true
 
   try {
+    const inviteQuery = router.currentRoute.value.query.invite
+    const inviteToken = typeof inviteQuery === 'string' ? inviteQuery : undefined
+
     const response = await signUpWithEmail({
       username: username.value,
       email: email.value,
       password: password.value,
+      inviteToken,
     })
 
     if (response.session) {
