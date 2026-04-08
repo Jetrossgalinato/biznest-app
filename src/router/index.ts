@@ -12,7 +12,7 @@ import LoginView from '@/views/auth/login/LoginView.vue'
 import RegisterView from '@/views/auth/register/RegisterView.vue'
 
 //Admin Routes
-import DashboardView from '@/views/dashboard/DashboardView.vue'
+import DashboardView from '@/views/(admin)/dashboard/DashboardView.vue'
 import AdminMap from '@/views/(admin)/map/AdminMap.vue'
 import UsersView from '@/views/(admin)/users/UsersView.vue'
 import ReportsView from '@/views/(admin)/reports/ReportsView.vue'
