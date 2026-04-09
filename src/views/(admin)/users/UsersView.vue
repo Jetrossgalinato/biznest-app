@@ -61,7 +61,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="w-full space-y-5">
+  <section class="w-full space-y-5 p-4 md:p-6">
     <Header
       v-model:search-query="searchQuery"
       v-model:role-filter="roleFilter"

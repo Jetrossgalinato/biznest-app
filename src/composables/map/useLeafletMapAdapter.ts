@@ -52,10 +52,12 @@ export function useLeafletMapAdapter(options: LeafletAdapterOptions) {
 
     const L = await import('leaflet')
 
-    leafletMap = L.map(options.containerRef.value).setView(
+    leafletMap = L.map(options.containerRef.value, { zoomControl: false }).setView(
       [options.center.lat, options.center.lng],
       14,
     )
+
+    L.control.zoom({ position: 'bottomright' }).addTo(leafletMap)
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,

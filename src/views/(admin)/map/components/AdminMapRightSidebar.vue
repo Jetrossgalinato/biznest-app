@@ -32,6 +32,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'close'): void
+  (e: 'start-draw-zone'): void
   (e: 'submit-layer', payload: CreateZoningLayerInput): void
   (e: 'update-layer', payload: { layerId: string; input: UpdateZoningLayerInput }): void
   (e: 'delete-layer', layerId: string): void
@@ -84,9 +85,14 @@ const {
       <CardHeader class="shrink-0 border-b py-4">
         <CardTitle class="flex items-center justify-between text-base">
           <TypographyP as="span" class="m-0 leading-none">Map Layer</TypographyP>
-          <Button variant="ghost" size="icon-sm" @click="emit('close')">
-            <X class="h-4 w-4" />
-          </Button>
+          <div class="flex items-center gap-1">
+            <Button variant="ghost" size="icon-sm" title="Draw zone" @click="emit('start-draw-zone')">
+              <Plus class="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon-sm" @click="emit('close')">
+              <X class="h-4 w-4" />
+            </Button>
+          </div>
         </CardTitle>
       </CardHeader>
 
