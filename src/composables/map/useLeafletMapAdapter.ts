@@ -272,7 +272,15 @@ export function useLeafletMapAdapter(options: LeafletAdapterOptions) {
     const layerGroup = L.layerGroup()
 
     hazards.forEach((hazard) => {
-      const popupHtml = `<strong>${hazard.name}</strong><br/>${hazard.category} • ${hazard.severity}`
+      const buildPopupContent = (): HTMLDivElement => {
+        const container = document.createElement("div");
+        const title = document.createElement("strong")
+        title.textContent = hazard.name
+        const meta = document.createElement("div")
+        meta.textContent =  `${hazard.category} • ${hazard.severity}`
+        container.append(title, document.createElement("br"), meta)
+        return container;
+      }
 
       if (hazard.geometry.type === 'Point') {
         const [lng, lat] = hazard.geometry.coordinates
@@ -283,7 +291,7 @@ export function useLeafletMapAdapter(options: LeafletAdapterOptions) {
           fillColor: '#ef4444',
           fillOpacity: 0.35,
         })
-          .bindPopup(popupHtml)
+          .bindPopup(buildPopupContent)
           .addTo(layerGroup)
         return
       }
@@ -297,7 +305,7 @@ export function useLeafletMapAdapter(options: LeafletAdapterOptions) {
             opacity: 0.95,
           },
         )
-          .bindPopup(popupHtml)
+          .bindPopup(buildPopupContent)
           .addTo(layerGroup)
         return
       }
@@ -314,7 +322,7 @@ export function useLeafletMapAdapter(options: LeafletAdapterOptions) {
           fillOpacity: 0.2,
         },
       )
-        .bindPopup(popupHtml)
+        .bindPopup(buildPopupContent)
         .addTo(layerGroup)
     })
 
