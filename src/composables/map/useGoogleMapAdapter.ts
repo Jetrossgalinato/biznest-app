@@ -426,6 +426,15 @@ export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
     googleMap.setZoom?.(16)
   }
 
+  function setCenter(center: { lat: number; lng: number }, zoom = 14): void {
+    if (!googleMap) {
+      return
+    }
+
+    googleMap.setCenter(center)
+    googleMap.setZoom?.(zoom)
+  }
+
   function loadGoogleMaps(): Promise<void> {
     const resolvedGoogleMapsApiKey = options.getApiKey()
 
@@ -470,6 +479,7 @@ export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
   return {
     init,
     destroy,
+    setCenter,
     renderBarangayBorders,
     renderMappedZones,
     renderHazards,

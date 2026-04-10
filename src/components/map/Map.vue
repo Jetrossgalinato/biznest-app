@@ -16,9 +16,11 @@ defineOptions({
 const props = withDefaults(
   defineProps<{
     provider?: MapProvider
+    center?: { lat: number; lng: number }
   }>(),
   {
     provider: 'leaflet',
+    center: () => ({ lat: 8.9475, lng: 125.5406 }),
   },
 )
 
@@ -28,7 +30,6 @@ const emit = defineEmits<{
 
 const mapContainer = ref<HTMLDivElement | null>(null)
 const mapError = ref('')
-const butuan = { lat: 8.9475, lng: 125.5406 }
 
 const googleMapsApiKeyMeta = document.querySelector('meta[name="google-maps-api-key"]') as
   | HTMLMetaElement
@@ -44,14 +45,14 @@ function resolveGoogleMapsApiKey(): string {
 
 const googleMapAdapter = useGoogleMapAdapter({
   containerRef: mapContainer,
-  center: butuan,
+  center: props.center,
   mapId: 'DEMO_MAP_ID',
   getApiKey: resolveGoogleMapsApiKey,
 })
 
 const leafletMapAdapter = useLeafletMapAdapter({
   containerRef: mapContainer,
-  center: butuan,
+  center: props.center,
 })
 
 function destroyProviderMaps(): void {
@@ -111,6 +112,23 @@ watch(
 onBeforeUnmount(() => {
   destroyProviderMaps()
 })
+
+watch(
+  () => props.center,
+  (center) => {
+    if (!center) {
+      return
+    }
+
+    if (props.provider === 'leaflet') {
+      leafletMapAdapter.setCenter(center)
+      return
+    }
+
+    googleMapAdapter.setCenter(center)
+  },
+  { deep: true },
+)
 
 // ── Imperative render API (called by parent via template ref) ──────────────
 
@@ -189,6 +207,15 @@ function setDrawPointMoveHandler(
   leafletMapAdapter.setDrawPointMoveHandler(null)
 }
 
+function setCenter(center: { lat: number; lng: number }, zoom = 14): void {
+  if (props.provider === 'leaflet') {
+    leafletMapAdapter.setCenter(center, zoom)
+    return
+  }
+
+  googleMapAdapter.setCenter(center, zoom)
+}
+
 defineExpose({
   renderBarangayBorders,
   renderMappedZones,
@@ -198,6 +225,7 @@ defineExpose({
   setDrawMode,
   setMapClickHandler,
   setDrawPointMoveHandler,
+  setCenter,
 })
 </script>
 

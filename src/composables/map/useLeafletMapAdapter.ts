@@ -64,8 +64,15 @@ export function useLeafletMapAdapter(options: LeafletAdapterOptions) {
       attribution: '&copy; OpenStreetMap contributors',
     }).addTo(leafletMap)
 
-    L.marker([options.center.lat, options.center.lng]).addTo(leafletMap).bindPopup('Butuan City')
     applyLeafletCursor()
+  }
+
+  function setCenter(center: { lat: number; lng: number }, zoom = 14): void {
+    if (!leafletMap) {
+      return
+    }
+
+    leafletMap.setView([center.lat, center.lng], zoom)
   }
 
   function destroyLeafletBarangayLayer(): void {
@@ -373,6 +380,7 @@ export function useLeafletMapAdapter(options: LeafletAdapterOptions) {
   return {
     init,
     destroy,
+    setCenter,
     renderBarangayBorders,
     renderMappedZones,
     renderHazards,

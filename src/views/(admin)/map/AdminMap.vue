@@ -15,6 +15,7 @@ const {
   // Map
   provider,
   mapRef,
+  mapCenter,
   onMapReady,
   // Barangay borders
   isLoading,
@@ -81,7 +82,7 @@ const {
 
     <!-- ── Map canvas ────────────────────────────────────────────────── -->
     <div class="relative min-w-0 flex-1">
-      <Map ref="mapRef" :provider="provider" @ready="onMapReady" />
+      <Map ref="mapRef" :provider="provider" :center="mapCenter" @ready="onMapReady" />
 
       <!-- Floating map-provider selector (top-left over the map) -->
       <div class="absolute left-3 top-3 z-900 flex items-center gap-2">
