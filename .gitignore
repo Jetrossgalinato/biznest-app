@@ -55,4 +55,3 @@ supabase/migrations/
 supabase/migrations/draft_*.sql
 supabase/migrations/*_local.sql
 
-package-lock.json
