@@ -30,43 +30,43 @@ const zones = computed(() => {
 
 <template>
   <div class="mt-1 space-y-0.5">
-      <div v-for="zone in zones" :key="zone.id">
+    <div v-for="zone in zones" :key="zone.id">
+      <div class="flex items-center gap-1 rounded-md px-2 py-1 transition-colors hover:bg-muted/40">
         <button
           type="button"
-          class="w-full rounded-md px-2 py-1 text-left transition-colors hover:bg-muted/40"
+          class="min-w-0 flex-1 text-left"
           @click="emit('select-mapped-zone', zone.id)"
         >
-          <div class="flex items-center gap-1">
-            <TypographySmall as="span" class="flex-1 truncate text-xs font-medium">{{ zone.name }}</TypographySmall>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              title="Update mapped zone"
-              :disabled="isSubmitting"
-              @click.stop="emit('update-mapped-zone', zone.id)"
-            >
-              <Pencil class="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              title="Delete mapped zone"
-              :disabled="isSubmitting"
-              @click.stop="emit('delete-mapped-zone', zone.id)"
-            >
-              <Trash2 class="h-3.5 w-3.5 text-destructive" />
-            </Button>
-          </div>
+          <TypographySmall as="span" class="block truncate text-xs font-medium">{{ zone.name }}</TypographySmall>
         </button>
-        <div class="w-full h-px bg-border/60" />
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          title="Update mapped zone"
+          :disabled="isSubmitting"
+          @click="emit('update-mapped-zone', zone.id)"
+        >
+          <Pencil class="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          title="Delete mapped zone"
+          :disabled="isSubmitting"
+          @click="emit('delete-mapped-zone', zone.id)"
+        >
+          <Trash2 class="h-3.5 w-3.5 text-destructive" />
+        </Button>
       </div>
+      <div class="h-px w-full bg-border/60" />
+    </div>
 
-      <TypographyMuted
-        v-if="zones.length === 0"
-        as="p"
-        class="px-2 text-[11px] text-muted-foreground"
-      >
-        No mapped zones yet.
-      </TypographyMuted>
+    <TypographyMuted
+      v-if="zones.length === 0"
+      as="p"
+      class="px-2 text-[11px] text-muted-foreground"
+    >
+      No mapped zones yet.
+    </TypographyMuted>
   </div>
 </template>
