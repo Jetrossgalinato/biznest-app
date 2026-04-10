@@ -78,10 +78,10 @@ const {
     Map fills the entire main content area.
     Layout (left → right): [map canvas] [hazard panel?] [layer panel?] [icon strip]
   -->
-  <div class="flex h-full w-full overflow-hidden">
+  <div class="relative h-full w-full overflow-hidden">
 
     <!-- ── Map canvas ────────────────────────────────────────────────── -->
-    <div class="relative min-w-0 flex-1">
+    <div class="relative h-full w-full">
       <Map ref="mapRef" :provider="provider" :center="mapCenter" @ready="onMapReady" />
 
       <!-- Floating map-provider selector (top-left over the map) -->
@@ -206,42 +206,50 @@ const {
     </div>
 
     <!-- ── Hazard panel (inline, left of icon strip) ──────────────── -->
-    <AdminMapHazardSidebar
+    <div
       v-if="isHazardSidebarOpen"
-      :hazards="hazards"
-      :is-enabled="hazardsEnabled"
-      :is-loading="isLoadingHazards"
-      :is-submitting="isSavingHazard"
-      :error-message="hazardError"
-      :selected-hazard-id="selectedHazardId"
-      @close="isHazardSidebarOpen = false"
-      @refresh="loadHazards(true)"
-      @toggle-enabled="handleToggleHazardsEnabled"
-      @select-hazard="handleSelectHazard"
-      @start-create-hazard="handleStartCreateHazard"
-      @update-hazard="handleUpdateHazard"
-      @delete-hazard="handleDeleteHazard"
-    />
+      class="absolute inset-y-0 right-11 z-1000"
+    >
+      <AdminMapHazardSidebar
+        :hazards="hazards"
+        :is-enabled="hazardsEnabled"
+        :is-loading="isLoadingHazards"
+        :is-submitting="isSavingHazard"
+        :error-message="hazardError"
+        :selected-hazard-id="selectedHazardId"
+        @close="isHazardSidebarOpen = false"
+        @refresh="loadHazards(true)"
+        @toggle-enabled="handleToggleHazardsEnabled"
+        @select-hazard="handleSelectHazard"
+        @start-create-hazard="handleStartCreateHazard"
+        @update-hazard="handleUpdateHazard"
+        @delete-hazard="handleDeleteHazard"
+      />
+    </div>
 
     <!-- ── Layer panel (inline, left of icon strip) ───────────────── -->
-    <AdminMapRightSidebar
+    <div
       v-if="isSidebarOpen"
-      :layers="zoningLayers"
-      :mapped-zones="mappedZones"
-      :is-submitting="isSidebarSubmitting"
-      @close="isSidebarOpen = false"
-      @start-draw-zone="startDrawZoneMode"
-      @submit-layer="handleCreateLayer"
-      @update-layer="handleUpdateLayer"
-      @delete-layer="handleDeleteLayer"
-      @update-mapped-zone="handleUpdateMappedZone"
-      @delete-mapped-zone="handleDeleteMappedZone"
-      @focus-mapped-zone="handleFocusMappedZone"
-      @toggle-layer-visibility="handleToggleLayerVisibility"
-    />
+      class="absolute inset-y-0 right-11 z-1000"
+    >
+      <AdminMapRightSidebar
+        :layers="zoningLayers"
+        :mapped-zones="mappedZones"
+        :is-submitting="isSidebarSubmitting"
+        @close="isSidebarOpen = false"
+        @start-draw-zone="startDrawZoneMode"
+        @submit-layer="handleCreateLayer"
+        @update-layer="handleUpdateLayer"
+        @delete-layer="handleDeleteLayer"
+        @update-mapped-zone="handleUpdateMappedZone"
+        @delete-mapped-zone="handleDeleteMappedZone"
+        @focus-mapped-zone="handleFocusMappedZone"
+        @toggle-layer-visibility="handleToggleLayerVisibility"
+      />
+    </div>
 
     <!-- ── Vertical icon strip (always visible) ───────────────────── -->
-    <div class="flex w-11 shrink-0 flex-col border-l bg-card">
+    <div class="absolute inset-y-0 right-0 z-1001 flex w-11 shrink-0 flex-col border-l bg-card">
       <TooltipProvider :delay-duration="300">
 
         <!-- Layers -->

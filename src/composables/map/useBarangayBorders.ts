@@ -1,5 +1,9 @@
 import { ref } from 'vue'
-import { fetchBarangayBordersSource } from '@/views/(admin)/map/composables/barangayBordersSource'
+import { getSupabaseClient } from '@/services/supabase.client'
+import {
+  fetchBarangayBordersSourceByCity,
+  resolveGeoRiskCityName,
+} from '@/views/(admin)/map/composables/barangayBordersSource'
 import type {
   BarangayFeature,
   BarangayFeatureCollection,
@@ -92,21 +96,76 @@ export function useBarangayBorders() {
   const barangayBorders = ref<BarangayFeatureCollection | null>(null)
   const isLoading = ref(false)
   const errorMessage = ref('')
+  const activeGeoRiskCityName = ref<string | null>(null)
+  const cityBordersCache = new Map<string, BarangayFeatureCollection>()
 
-  async function loadBarangayBorders(): Promise<void> {
-    if (barangayBorders.value) {
-      return
+  async function resolveCurrentUserGeoRiskCityName(): Promise<string> {
+    const supabase = getSupabaseClient()
+    const { data, error } = await supabase.auth.getUser()
+
+    if (error || !data.user) {
+      throw new Error('Unable to resolve your account city. Please sign in again.')
     }
 
+    const metadata = (data.user.user_metadata ?? {}) as Record<string, unknown>
+
+    const cityName =
+      typeof metadata.city_name === 'string'
+        ? metadata.city_name
+        : typeof metadata.city === 'string'
+          ? metadata.city
+          : null
+
+    const legacyCity = typeof metadata.city === 'string' ? metadata.city : null
+
+    const resolved = await resolveGeoRiskCityName({
+      cityName,
+      legacyCity,
+    })
+
+    if (!resolved) {
+      throw new Error(
+        cityName
+          ? `No matching GeoRisk city found for "${cityName}".`
+          : 'No city name found in your account metadata.',
+      )
+    }
+
+    return resolved
+  }
+
+  async function loadBarangayBorders(): Promise<void> {
     isLoading.value = true
     errorMessage.value = ''
 
     try {
-      const raw = await fetchBarangayBordersSource()
-      barangayBorders.value = normalizeBarangayFeatureCollection(raw)
+      const georiskCityName = await resolveCurrentUserGeoRiskCityName()
+
+      if (
+        activeGeoRiskCityName.value === georiskCityName
+        && barangayBorders.value
+      ) {
+        return
+      }
+
+      const cachedBorders = cityBordersCache.get(georiskCityName)
+      if (cachedBorders) {
+        barangayBorders.value = cachedBorders
+        activeGeoRiskCityName.value = georiskCityName
+        return
+      }
+
+      const raw = await fetchBarangayBordersSourceByCity(georiskCityName)
+      const normalizedBorders = normalizeBarangayFeatureCollection(raw)
+
+      cityBordersCache.set(georiskCityName, normalizedBorders)
+      barangayBorders.value = normalizedBorders
+      activeGeoRiskCityName.value = georiskCityName
     } catch (error) {
       errorMessage.value =
         error instanceof Error ? error.message : 'Unable to load barangay border map data.'
+      barangayBorders.value = null
+      activeGeoRiskCityName.value = null
     } finally {
       isLoading.value = false
     }
