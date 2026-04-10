@@ -111,19 +111,23 @@ const buildCenterMapByCityId = (
   cities: CityOption[],
   centers: CityCenter[],
 ): Map<string, CityCenter> => {
-  const centerByCityName = new Map<string, CityCenter>()
+  const centersByCityName = new Map<string, CityCenter[]>()
 
   centers.forEach((center) => {
     const key = normalizeName(center.city)
-    if (!centerByCityName.has(key)) {
-      centerByCityName.set(key, center)
-    }
+    const existing = centersByCityName.get(key) ?? []
+    centersByCityName.set(key, [...existing, center])
   })
 
   const result = new Map<string, CityCenter>()
   cities.forEach((city) => {
     const key = normalizeName(city.name)
-    const center = centerByCityName.get(key)
+    const candidates = centersByCityName.get(key) ?? []
+    if (candidates.length !== 1) {
+      return
+    }
+
+    const center = candidates[0]
     if (center) {
       result.set(city.id, center)
     }
@@ -231,10 +235,15 @@ export const resolveCityCenter = async (
   }
 
   const normalizedFallbackName = normalizeName(fallbackName)
+  const fallbackCandidates: CityCenter[] = []
   for (const center of centersById.values()) {
     if (normalizeName(center.city) === normalizedFallbackName) {
-      return center
+      fallbackCandidates.push(center)
     }
+  }
+
+  if (fallbackCandidates.length === 1) {
+    return fallbackCandidates[0] ?? null
   }
 
   return null
