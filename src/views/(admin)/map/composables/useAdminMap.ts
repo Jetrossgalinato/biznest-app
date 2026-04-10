@@ -41,7 +41,7 @@ import type Map from '@/components/map/Map.vue'
 
 export function useAdminMap() {
   // ── Map state ──────────────────────────────────────────────────────────────
-  const provider = ref<'google' | 'leaflet'>('leaflet')
+  const provider = ref<'google' | 'leaflet'>('google')
   const mapRef = ref<InstanceType<typeof Map> | null>(null)
   const mapCenter = ref({ lat: 8.9475, lng: 125.5406 })
 

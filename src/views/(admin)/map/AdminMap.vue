@@ -85,7 +85,7 @@ const {
       <Map ref="mapRef" :provider="provider" :center="mapCenter" @ready="onMapReady" />
 
       <!-- Floating map-provider selector (top-left over the map) -->
-      <div class="absolute left-3 top-14 z-900 flex items-center gap-2">
+      <div class="absolute left-1/2 top-3 z-900 flex -translate-x-1/2 items-center gap-2">
         <Select v-model="provider">
           <SelectTrigger size="sm" class="w-48 bg-card text-foreground dark:bg-card">
             <SelectValue placeholder="Map provider" />
