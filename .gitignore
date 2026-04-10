@@ -39,6 +39,9 @@ __screenshots__/
 # Vite
 *.timestamp-*-*.mjs
 
+# Ignore hazard.sql migration
+sql/hazard.sql
+
 #environment variables
 .env
 
