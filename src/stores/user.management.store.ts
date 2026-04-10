@@ -20,13 +20,26 @@ export const useUserManagementStore = defineStore('userManagement', () => {
       return
     }
 
-    users.value = fetchedUsers.map((user) => ({
-      id: user.id,
-      username: user.full_name ?? user.email ?? 'Unknown',
-      email: user.email ?? '',
-      role: user.role ?? 'user',
-      city: '',
-    }))
+    users.value = fetchedUsers.map((user) => {
+      const metadata = user.raw_user_meta_data ?? {}
+      const city =
+        user.city ??
+        user.city_name ??
+        metadata.city_name ??
+        metadata.cityName ??
+        metadata.city ??
+        ''
+      const cityId = metadata.city_id ?? metadata.cityId ?? undefined
+
+      return {
+        id: user.id,
+        username: user.full_name ?? user.email ?? 'Unknown',
+        email: user.email ?? '',
+        role: user.role ?? 'user',
+        city,
+        cityId,
+      }
+    })
 
     isLoading.value = false
   }
