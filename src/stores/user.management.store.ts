@@ -1,16 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { listUsers } from '@/services/user-management.service'
-import type { UserRow, UserStatus } from '@/views/(admin)/users/types/users-table.types'
-
-const resolveStatus = (
-  bannedUntil: string | null | undefined,
-  confirmedAt: string | null | undefined,
-): UserStatus => {
-  if (bannedUntil && new Date(bannedUntil) > new Date()) return 'Suspended'
-  if (confirmedAt) return 'Active'
-  return 'Pending'
-}
+import type { UserRow } from '@/views/(admin)/users/types/users-table.types'
 
 export const useUserManagementStore = defineStore('userManagement', () => {
   const users = ref<UserRow[]>([])
@@ -31,10 +22,10 @@ export const useUserManagementStore = defineStore('userManagement', () => {
 
     users.value = fetchedUsers.map((user) => ({
       id: user.id,
-      fullName: user.full_name ?? user.email ?? 'Unknown',
+      username: user.full_name ?? user.email ?? 'Unknown',
       email: user.email ?? '',
       role: user.role ?? 'user',
-      status: resolveStatus(user.banned_until, user.confirmed_at),
+      city: '',
     }))
 
     isLoading.value = false
