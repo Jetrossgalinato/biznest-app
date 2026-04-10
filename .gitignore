@@ -39,6 +39,9 @@ __screenshots__/
 # Vite
 *.timestamp-*-*.mjs
 
+# Ignore trial map HTML file
+trialmap.html
+
 # Ignore hazard.sql migration
 sql/hazard.sql
 
