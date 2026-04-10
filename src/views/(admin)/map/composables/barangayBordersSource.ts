@@ -1,3 +1,5 @@
+import type { BarangayFeatureCollection } from '@/types/map.types.ts'
+
 interface GeoRiskCityFeature {
   attributes?: {
     city_name?: string
@@ -168,17 +170,19 @@ export async function resolveGeoRiskCityName(input: ResolveGeoRiskCityInput): Pr
   return null
 }
 
-async function fetchLegacyButuanBorders(): Promise<unknown> {
+async function fetchLegacyButuanBorders(): Promise<BarangayFeatureCollection> {
   const response = await fetch(LEGACY_BUTUAN_BORDERS_SOURCE_URL)
   if (!response.ok) {
     throw new Error(`Failed to fetch legacy barangay border data: ${response.status}`)
   }
 
   const text = await response.text()
-  return JSON.parse(text) as unknown
+  return JSON.parse(text) as BarangayFeatureCollection
 }
 
-export async function fetchBarangayBordersSourceByCity(georiskCityName: string): Promise<unknown> {
+export async function fetchBarangayBordersSourceByCity(
+  georiskCityName: string,
+): Promise<BarangayFeatureCollection> {
   const escapedCityName = georiskCityName.replace(/'/g, "''")
   const params = new URLSearchParams({
     where: `city_name='${escapedCityName}'`,
@@ -191,7 +195,7 @@ export async function fetchBarangayBordersSourceByCity(georiskCityName: string):
     throw new Error(`Failed to fetch barangay border data: ${response.status}`)
   }
 
-  const payload = (await response.json()) as { features?: unknown[] }
+  const payload = (await response.json()) as BarangayFeatureCollection
   const hasFeatures = Array.isArray(payload.features) && payload.features.length > 0
 
   if (!hasFeatures && normalizeName(georiskCityName) === normalizeName('Butuan City')) {
