@@ -14,7 +14,6 @@ export interface SupabaseUserRow {
     city_name?: string | null
     cityName?: string | null
     city_id?: string | null
-    cityId?: string | null
     [key: string]: unknown
   } | null
 }

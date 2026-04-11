@@ -24,9 +24,7 @@ async function getCurrentCityId(): Promise<string> {
   const metadata = (data.user.user_metadata ?? {}) as Record<string, unknown>
   const cityId = typeof metadata.city_id === 'string'
     ? metadata.city_id.trim()
-    : typeof metadata.cityId === 'string'
-      ? metadata.cityId.trim()
-      : ''
+    : ''
 
   if (!cityId) {
     throw new Error('Missing city_id in account metadata. Contact an administrator.')

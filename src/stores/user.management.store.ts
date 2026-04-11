@@ -29,7 +29,7 @@ export const useUserManagementStore = defineStore('userManagement', () => {
         metadata.cityName ??
         metadata.city ??
         ''
-      const cityId = metadata.city_id ?? metadata.cityId ?? undefined
+      const cityId = metadata.city_id ?? undefined
 
       return {
         id: user.id,
