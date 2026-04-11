@@ -77,6 +77,8 @@ export function useAdminMap() {
   const hazardPlacementType = ref<HazardGeometryType | null>(null)
   const hazardDrawPoints = ref<MapDrawPoint[]>([])
   const showHazardFormModal = ref(false)
+  let cityScopedSyncTimer: ReturnType<typeof setInterval> | null = null
+  let cityScopedSyncInFlight = false
 
   // ── Computed ───────────────────────────────────────────────────────────────
   const isSidebarSubmitting = computed(() => isSavingLayer.value || isSavingMappedZone.value)
@@ -122,6 +124,36 @@ export function useAdminMap() {
       mappedZones.value = await listCityMappedZones()
     } catch (error) {
       zoningError.value = error instanceof Error ? error.message : 'Failed to load mapped zones.'
+    }
+  }
+
+  async function refreshCityScopedMapData(): Promise<void> {
+    if (cityScopedSyncInFlight) {
+      return
+    }
+
+    cityScopedSyncInFlight = true
+    try {
+      await Promise.all([loadZoningLayers(), loadMappedZones()])
+    } finally {
+      cityScopedSyncInFlight = false
+    }
+  }
+
+  function startCityScopedSync(): void {
+    if (cityScopedSyncTimer !== null) {
+      return
+    }
+
+    cityScopedSyncTimer = setInterval(() => {
+      void refreshCityScopedMapData()
+    }, 6000)
+  }
+
+  function stopCityScopedSync(): void {
+    if (cityScopedSyncTimer !== null) {
+      clearInterval(cityScopedSyncTimer)
+      cityScopedSyncTimer = null
     }
   }
 
@@ -635,13 +667,21 @@ export function useAdminMap() {
   })
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
+  const handleWindowFocusSync = (): void => {
+    void refreshCityScopedMapData()
+  }
+
   onMounted(async () => {
     window.addEventListener('keydown', handleDrawUndoShortcut)
+    window.addEventListener('focus', handleWindowFocusSync)
+    startCityScopedSync()
     await Promise.all([loadMapCenterFromUserMetadata(), loadZoningLayers(), loadMappedZones()])
   })
 
   onBeforeUnmount(() => {
     window.removeEventListener('keydown', handleDrawUndoShortcut)
+    window.removeEventListener('focus', handleWindowFocusSync)
+    stopCityScopedSync()
   })
 
   return {
