@@ -11,12 +11,14 @@ import {
   createZoningLayer,
   deleteMappedZone,
   deleteZoningLayer,
-  listMyMappedZones,
-  listMyZoningLayers,
+  listCityMappedZones,
+  listCityZoningLayers,
   setZoningLayerActive,
   updateMappedZone,
   updateZoningLayer,
 } from '@/services/zoning/zoning.service.ts'
+import { resolveCityCenter } from '@/services/cities.service.ts'
+import { getSupabaseClient } from '@/services/supabase.client.ts'
 import type {
   CreateHazardFormInput,
   Hazard,
@@ -39,8 +41,9 @@ import type Map from '@/components/map/Map.vue'
 
 export function useAdminMap() {
   // ── Map state ──────────────────────────────────────────────────────────────
-  const provider = ref<'google' | 'leaflet'>('leaflet')
+  const provider = ref<'google' | 'leaflet'>('google')
   const mapRef = ref<InstanceType<typeof Map> | null>(null)
+  const mapCenter = ref({ lat: 8.9475, lng: 125.5406 })
 
   // ── Barangay borders ───────────────────────────────────────────────────────
   const { barangayBorders, isLoading, errorMessage, loadBarangayBorders } = useBarangayBorders()
@@ -74,6 +77,8 @@ export function useAdminMap() {
   const hazardPlacementType = ref<HazardGeometryType | null>(null)
   const hazardDrawPoints = ref<MapDrawPoint[]>([])
   const showHazardFormModal = ref(false)
+  let cityScopedSyncTimer: ReturnType<typeof setInterval> | null = null
+  let cityScopedSyncInFlight = false
 
   // ── Computed ───────────────────────────────────────────────────────────────
   const isSidebarSubmitting = computed(() => isSavingLayer.value || isSavingMappedZone.value)
@@ -107,7 +112,7 @@ export function useAdminMap() {
   async function loadZoningLayers(): Promise<void> {
     zoningError.value = ''
     try {
-      zoningLayers.value = await listMyZoningLayers()
+      zoningLayers.value = await listCityZoningLayers()
     } catch (error) {
       zoningError.value = error instanceof Error ? error.message : 'Failed to load zoning layers.'
     }
@@ -116,9 +121,66 @@ export function useAdminMap() {
   async function loadMappedZones(): Promise<void> {
     zoningError.value = ''
     try {
-      mappedZones.value = await listMyMappedZones()
+      mappedZones.value = await listCityMappedZones()
     } catch (error) {
       zoningError.value = error instanceof Error ? error.message : 'Failed to load mapped zones.'
+    }
+  }
+
+  async function refreshCityScopedMapData(): Promise<void> {
+    if (cityScopedSyncInFlight) {
+      return
+    }
+
+    cityScopedSyncInFlight = true
+    try {
+      await Promise.all([loadZoningLayers(), loadMappedZones()])
+    } finally {
+      cityScopedSyncInFlight = false
+    }
+  }
+
+  function startCityScopedSync(): void {
+    if (cityScopedSyncTimer !== null) {
+      return
+    }
+
+    cityScopedSyncTimer = setInterval(() => {
+      void refreshCityScopedMapData()
+    }, 6000)
+  }
+
+  function stopCityScopedSync(): void {
+    if (cityScopedSyncTimer !== null) {
+      clearInterval(cityScopedSyncTimer)
+      cityScopedSyncTimer = null
+    }
+  }
+
+  async function loadMapCenterFromUserMetadata(): Promise<void> {
+    try {
+      const supabase = getSupabaseClient()
+      const { data, error } = await supabase.auth.getUser()
+
+      if (error || !data.user) {
+        return
+      }
+
+      const metadata = (data.user.user_metadata ?? {}) as Record<string, unknown>
+      const center = await resolveCityCenter({
+        cityId: typeof metadata.city_id === 'string' ? metadata.city_id : null,
+        cityName: typeof metadata.city_name === 'string' ? metadata.city_name : null,
+        legacyCity: typeof metadata.city === 'string' ? metadata.city : null,
+      })
+
+      if (!center) {
+        return
+      }
+
+      mapCenter.value = { lat: center.lat, lng: center.lng }
+      mapRef.value?.setCenter(mapCenter.value, 14)
+    } catch {
+      // Keep default map center if city-center lookup data is unavailable.
     }
   }
 
@@ -512,6 +574,7 @@ export function useAdminMap() {
   }
 
   async function onMapReady(): Promise<void> {
+    mapRef.value?.setCenter(mapCenter.value, 14)
     mapRef.value?.setDrawMode(isAnyDrawModeActive.value)
     mapRef.value?.setMapClickHandler(isAnyDrawModeActive.value ? handleMapClick : null)
     mapRef.value?.setDrawPointMoveHandler(isAnyDrawModeActive.value ? handleDrawPointMove : null)
@@ -604,19 +667,28 @@ export function useAdminMap() {
   })
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
+  const handleWindowFocusSync = (): void => {
+    void refreshCityScopedMapData()
+  }
+
   onMounted(async () => {
     window.addEventListener('keydown', handleDrawUndoShortcut)
-    await Promise.all([loadZoningLayers(), loadMappedZones()])
+    window.addEventListener('focus', handleWindowFocusSync)
+    startCityScopedSync()
+    await Promise.all([loadMapCenterFromUserMetadata(), loadZoningLayers(), loadMappedZones()])
   })
 
   onBeforeUnmount(() => {
     window.removeEventListener('keydown', handleDrawUndoShortcut)
+    window.removeEventListener('focus', handleWindowFocusSync)
+    stopCityScopedSync()
   })
 
   return {
     // Map
     provider,
     mapRef,
+    mapCenter,
     onMapReady,
     // Barangay borders
     barangayBorders,
