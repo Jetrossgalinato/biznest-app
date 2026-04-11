@@ -126,26 +126,30 @@ export function useAdminMap() {
   }
 
   async function loadMapCenterFromUserMetadata(): Promise<void> {
-    const supabase = getSupabaseClient()
-    const { data, error } = await supabase.auth.getUser()
+    try {
+      const supabase = getSupabaseClient()
+      const { data, error } = await supabase.auth.getUser()
 
-    if (error || !data.user) {
-      return
+      if (error || !data.user) {
+        return
+      }
+
+      const metadata = (data.user.user_metadata ?? {}) as Record<string, unknown>
+      const center = await resolveCityCenter({
+        cityId: typeof metadata.city_id === 'string' ? metadata.city_id : null,
+        cityName: typeof metadata.city_name === 'string' ? metadata.city_name : null,
+        legacyCity: typeof metadata.city === 'string' ? metadata.city : null,
+      })
+
+      if (!center) {
+        return
+      }
+
+      mapCenter.value = { lat: center.lat, lng: center.lng }
+      mapRef.value?.setCenter(mapCenter.value, 14)
+    } catch {
+      // Keep default map center if city-center lookup data is unavailable.
     }
-
-    const metadata = (data.user.user_metadata ?? {}) as Record<string, unknown>
-    const center = await resolveCityCenter({
-      cityId: typeof metadata.city_id === 'string' ? metadata.city_id : null,
-      cityName: typeof metadata.city_name === 'string' ? metadata.city_name : null,
-      legacyCity: typeof metadata.city === 'string' ? metadata.city : null,
-    })
-
-    if (!center) {
-      return
-    }
-
-    mapCenter.value = { lat: center.lat, lng: center.lng }
-    mapRef.value?.setCenter(mapCenter.value, 14)
   }
 
   async function handleCreateLayer(payload: CreateZoningLayerInput): Promise<void> {
