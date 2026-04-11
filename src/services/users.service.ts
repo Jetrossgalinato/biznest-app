@@ -69,7 +69,7 @@ const getCityMetadata = (
   cityId: string
   cityName: string
 } => {
-  const cityIdFromDedicatedField = getOptionalText(meta.city_id ?? meta.cityId) ?? ''
+  const cityIdFromDedicatedField = getOptionalText(meta.city_id) ?? ''
   const cityNameFromDedicatedField = getOptionalText(meta.city_name ?? meta.cityName) ?? ''
   const cityFromLegacyField = getOptionalText(meta.city) ?? ''
   const legacyCityLooksLikeId = cityFromLegacyField ? isLikelyCityId(cityFromLegacyField) : false
