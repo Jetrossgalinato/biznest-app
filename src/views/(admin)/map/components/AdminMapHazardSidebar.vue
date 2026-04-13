@@ -16,6 +16,7 @@ import HazardFormModal from '@/views/(admin)/map/components/HazardFormModal.vue'
 import ZoningLayerDeleteDialog from '@/views/(admin)/map/components/ZoningLayerDeleteDialog.vue'
 import type {
   Hazard,
+  HazardCategory,
   HazardGeometryType,
   HazardId,
   UpdateHazardInput,
@@ -24,6 +25,7 @@ import type {
 const props = withDefaults(
   defineProps<{
     hazards?: Hazard[]
+    categories?: HazardCategory[]
     isEnabled?: boolean
     isLoading?: boolean
     isSubmitting?: boolean
@@ -32,6 +34,7 @@ const props = withDefaults(
   }>(),
   {
     hazards: () => [],
+    categories: () => [],
     isEnabled: false,
     isLoading: false,
     isSubmitting: false,
@@ -188,7 +191,7 @@ function submitUpdate(payload: UpdateHazardInput): void {
                 <Badge variant="outline" class="ml-auto text-[10px] uppercase">{{ hazard.severity }}</Badge>
               </div>
               <TypographyMuted as="p" class="mt-1 text-xs text-muted-foreground">
-                {{ hazard.category }} • {{ hazard.status }}
+                {{ hazard.status }}
               </TypographyMuted>
               <TypographyMuted
                 v-if="hazard.location_name"
@@ -228,6 +231,7 @@ function submitUpdate(payload: UpdateHazardInput): void {
     <HazardFormModal
       :open="Boolean(editingHazard)"
       mode="edit"
+      :categories="props.categories"
       :is-submitting="props.isSubmitting"
       :initial-value="editingHazard"
       @close="closeEditModal"

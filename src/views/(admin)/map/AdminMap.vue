@@ -53,6 +53,7 @@ const {
   handleDeleteMappedZone,
   handleFocusMappedZone,
   // Hazards
+  hazardCategories,
   hazards,
   isLoadingHazards,
   isSavingHazard,
@@ -192,6 +193,7 @@ const {
       <HazardFormModal
         :open="showHazardFormModal"
         mode="add"
+        :categories="hazardCategories"
         :is-submitting="isSavingHazard"
         :placement-type="hazardPlacementType"
         :point-count="hazardDrawPoints.length"
@@ -215,6 +217,7 @@ const {
     >
       <AdminMapHazardSidebar
         :hazards="hazards"
+        :categories="hazardCategories"
         :is-enabled="hazardsEnabled"
         :is-loading="isLoadingHazards"
         :is-submitting="isSavingHazard"

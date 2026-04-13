@@ -19,6 +19,7 @@ import {
 import type {
   CreateHazardFormInput,
   Hazard,
+  HazardCategory,
   HazardGeometry,
   HazardGeometryType,
   HazardSeverity,
@@ -39,12 +40,14 @@ const props = withDefaults(
   defineProps<{
     open: boolean
     mode: 'add' | 'edit'
+    categories?: HazardCategory[]
     isSubmitting?: boolean
     initialValue?: Hazard | null
     placementType?: HazardGeometryType | null
     pointCount?: number
   }>(),
   {
+    categories: () => [],
     isSubmitting: false,
     initialValue: null,
     placementType: null,
@@ -60,7 +63,7 @@ const emit = defineEmits<{
 
 const form = reactive({
   name: '',
-  category: '',
+  category_id: '',
   severity: 'low' as HazardSeverity,
   status: 'reported' as HazardStatus,
   location_name: '',
@@ -77,7 +80,7 @@ const modalTitle = computed(() => (props.mode === 'add' ? 'Add Hazard' : 'Update
 const submitLabel = computed(() => (props.mode === 'add' ? 'Create Hazard' : 'Update Hazard'))
 const isAddMode = computed(() => props.mode === 'add')
 const canSubmit = computed(() => {
-  return form.name.trim().length > 0 && form.category.trim().length > 0 && !props.isSubmitting
+  return form.name.trim().length > 0 && form.category_id.length > 0 && !props.isSubmitting
 })
 
 watch(
@@ -91,7 +94,7 @@ watch(
 
     if (props.mode === 'edit' && props.initialValue) {
       form.name = props.initialValue.name
-      form.category = props.initialValue.category
+      form.category_id = props.initialValue.category_id
       form.severity = props.initialValue.severity
       form.status = props.initialValue.status
       form.location_name = props.initialValue.location_name ?? ''
@@ -102,7 +105,7 @@ watch(
     }
 
     form.name = ''
-    form.category = ''
+    form.category_id = ''
     form.severity = 'low'
     form.status = 'reported'
     form.location_name = ''
@@ -177,7 +180,7 @@ function submit(): void {
 
   const basePayload = {
     name: form.name.trim(),
-    category: form.category.trim(),
+    category_id: form.category_id,
     severity: form.severity,
     status: form.status,
     location_name: form.location_name.trim() || null,
@@ -221,7 +224,20 @@ function submit(): void {
 
           <div class="space-y-1">
             <label class="text-xs font-medium">Category</label>
-            <Input v-model="form.category" placeholder="e.g. flood" />
+            <Select v-model="form.category_id">
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem
+                  v-for="cat in categories"
+                  :key="cat.id"
+                  :value="cat.id"
+                >
+                  {{ cat.label }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div class="space-y-1">

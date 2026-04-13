@@ -3,6 +3,7 @@ import { useBarangayBorders } from '@/composables/map/useBarangayBorders.ts'
 import {
   createHazard,
   deleteHazard,
+  listHazardCategories,
   listHazards,
   updateHazard,
 } from '@/services/hazard/hazard.service.ts'
@@ -22,6 +23,7 @@ import { getSupabaseClient } from '@/services/supabase.client.ts'
 import type {
   CreateHazardFormInput,
   Hazard,
+  HazardCategory,
   HazardGeometry,
   HazardGeometryType,
   HazardId,
@@ -70,6 +72,8 @@ export function useAdminMap() {
   const selectedMappedZoneId = ref<string | null>(null)
 
   // ── Hazard state ───────────────────────────────────────────────────────────
+  const cityId = ref<string | null>(null)
+  const hazardCategories = ref<HazardCategory[]>([])
   const hazards = ref<Hazard[]>([])
   const isLoadingHazards = ref(false)
   const isSavingHazard = ref(false)
@@ -170,8 +174,9 @@ export function useAdminMap() {
       }
 
       const metadata = (data.user.user_metadata ?? {}) as Record<string, unknown>
+      cityId.value = typeof metadata.city_id === 'string' ? metadata.city_id : null
       const center = await resolveCityCenter({
-        cityId: typeof metadata.city_id === 'string' ? metadata.city_id : null,
+        cityId: cityId.value,
         cityName: typeof metadata.city_name === 'string' ? metadata.city_name : null,
         legacyCity: typeof metadata.city === 'string' ? metadata.city : null,
       })
@@ -329,6 +334,14 @@ export function useAdminMap() {
   }
 
   // ── Hazard placement ───────────────────────────────────────────────────────
+  async function loadHazardCategories(): Promise<void> {
+    try {
+      hazardCategories.value = await listHazardCategories()
+    } catch {
+      // Non-critical: form falls back to empty category list
+    }
+  }
+
   async function loadHazards(force = false): Promise<void> {
     if (hasLoadedHazards.value && !force) {
       return
@@ -449,6 +462,7 @@ export function useAdminMap() {
     try {
       const createdHazard = await createHazard({
         ...payload,
+        city_id: cityId.value ?? '',
         geometry,
         geometry_type: hazardPlacementType.value,
       })
@@ -684,7 +698,12 @@ export function useAdminMap() {
     window.addEventListener('keydown', handleDrawUndoShortcut)
     window.addEventListener('focus', handleWindowFocusSync)
     startCityScopedSync()
-    await Promise.all([loadMapCenterFromUserMetadata(), loadZoningLayers(), loadMappedZones()])
+    await Promise.all([
+      loadMapCenterFromUserMetadata(),
+      loadZoningLayers(),
+      loadMappedZones(),
+      loadHazardCategories(),
+    ])
   })
 
   onBeforeUnmount(() => {
@@ -740,6 +759,7 @@ export function useAdminMap() {
     handleDeleteMappedZone,
     handleFocusMappedZone,
     // Hazards
+    hazardCategories,
     hazards,
     isLoadingHazards,
     isSavingHazard,
