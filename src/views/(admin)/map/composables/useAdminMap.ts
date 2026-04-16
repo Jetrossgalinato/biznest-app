@@ -56,7 +56,7 @@ export function useAdminMap() {
   const isHazardSidebarOpen = ref(false)
 
   // ── Map display state ──────────────────────────────────────────────────────
-  const showMapPoi = ref(false)
+  const showMapPoi = ref(true)
 
   // ── Zoning state ───────────────────────────────────────────────────────────
   const isSavingLayer = ref(false)
