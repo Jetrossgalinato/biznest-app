@@ -76,13 +76,15 @@ onMounted(() => {
 })
 
 const handleSubmit = async (): Promise<void> => {
+  const normalizedEmail = email.value.trim()
+  const normalizedUsername = username.value.trim()
   const missingFields: string[] = []
 
-  if (!email.value) {
+  if (!normalizedEmail) {
     missingFields.push('Email is required.')
   }
 
-  if (!username.value) {
+  if (!normalizedUsername) {
     missingFields.push('Username is required.')
   }
 
@@ -123,8 +125,8 @@ const handleSubmit = async (): Promise<void> => {
     const inviteToken = typeof inviteQuery === 'string' ? inviteQuery : undefined
 
     const response = await signUpWithEmail({
-      username: username.value,
-      email: email.value,
+      username: normalizedUsername,
+      email: normalizedEmail,
       password: password.value,
       city_id: cityId.value,
       city_name: selectedCityName.value,
