@@ -146,10 +146,19 @@ const mapSignInError = (error: unknown): AuthServiceError => {
   const rawStatus = getRawAuthErrorStatus(error)
   const normalizedMessage = rawMessage.toLowerCase()
 
-  if (
-    normalizedMessage.includes('invalid login credentials') ||
-    normalizedMessage.includes('email not confirmed')
-  ) {
+  if (normalizedMessage.includes('email not confirmed')) {
+    return new AuthServiceError(
+      'Email not confirmed. Please confirm your email or request a new confirmation link.',
+      {
+        field: 'general',
+        code: rawCode,
+        status: rawStatus,
+        rawMessage,
+      },
+    )
+  }
+
+  if (normalizedMessage.includes('invalid login credentials')) {
     return new AuthServiceError(
       'Invalid email or password. Please check your credentials and try again.',
       {
