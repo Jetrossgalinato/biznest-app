@@ -10,17 +10,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-  FieldSeparator,
-} from '@/components/ui/field'
+import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { useAlertContext } from '@/composables/useAlert'
-import { signUpWithEmail } from '@/services/auth.service'
+import { AuthServiceError, signUpWithEmail } from '@/services/auth.service'
 import { fetchPhilippineCities } from '@/services/cities.service'
 import type { CityOption } from '@/services/cities.service'
 import logoImage from '@/assets/images/logo.png'
@@ -31,7 +24,7 @@ const props = defineProps<{
 }>()
 
 const router = useRouter()
-const { showSuccess } = useAlertContext()
+const { showAlert, showSuccess } = useAlertContext()
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const email = ref('')
@@ -42,7 +35,14 @@ const confirmPassword = ref('')
 const cities = ref<CityOption[]>([])
 const isFetchingCities = ref(false)
 const isSubmitting = ref(false)
-const errorMessage = ref('')
+
+const showErrorAlert = (description: string, title = 'Registration failed'): void => {
+  showAlert({
+    title,
+    description,
+    tone: 'destructive',
+  })
+}
 
 const selectedCityName = computed(() => {
   if (!cityId.value) {
@@ -62,7 +62,10 @@ const fetchCities = async (): Promise<void> => {
   try {
     cities.value = await fetchPhilippineCities()
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Unable to load cities.'
+    showErrorAlert(
+      error instanceof Error ? error.message : 'Unable to load cities.',
+      'City list error',
+    )
   } finally {
     isFetchingCities.value = false
   }
@@ -73,26 +76,45 @@ onMounted(() => {
 })
 
 const handleSubmit = async (): Promise<void> => {
-  errorMessage.value = ''
+  const normalizedEmail = email.value.trim()
+  const normalizedUsername = username.value.trim()
+  const missingFields: string[] = []
 
-  if (
-    !email.value ||
-    !username.value ||
-    !cityId.value ||
-    !password.value ||
-    !confirmPassword.value
-  ) {
-    errorMessage.value = 'Please fill in every field.'
+  if (!normalizedEmail) {
+    missingFields.push('Email is required.')
+  }
+
+  if (!normalizedUsername) {
+    missingFields.push('Username is required.')
+  }
+
+  if (!cityId.value) {
+    missingFields.push('Please select your city.')
+  }
+
+  if (!password.value) {
+    missingFields.push('Password is required.')
+  }
+
+  if (!confirmPassword.value) {
+    missingFields.push('Please confirm your password.')
+  }
+
+  if (missingFields.length > 0) {
+    showErrorAlert(
+      `Please fill in all required fields. ${missingFields.join(' ')}`,
+      'Missing information',
+    )
     return
   }
 
   if (password.value.length < 8) {
-    errorMessage.value = 'Password must be at least 8 characters long.'
+    showErrorAlert('Password must be at least 8 characters long.', 'Weak password')
     return
   }
 
   if (password.value !== confirmPassword.value) {
-    errorMessage.value = 'Passwords do not match.'
+    showErrorAlert('Passwords do not match.', 'Password mismatch')
     return
   }
 
@@ -103,8 +125,8 @@ const handleSubmit = async (): Promise<void> => {
     const inviteToken = typeof inviteQuery === 'string' ? inviteQuery : undefined
 
     const response = await signUpWithEmail({
-      username: username.value,
-      email: email.value,
+      username: normalizedUsername,
+      email: normalizedEmail,
       password: password.value,
       city_id: cityId.value,
       city_name: selectedCityName.value,
@@ -128,8 +150,17 @@ const handleSubmit = async (): Promise<void> => {
     password.value = ''
     confirmPassword.value = ''
   } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Unable to create your account right now.'
+    if (error instanceof AuthServiceError) {
+      showErrorAlert(error.message)
+      return
+    }
+
+    if (error instanceof Error) {
+      showErrorAlert(error.message)
+      return
+    }
+
+    showErrorAlert('Unable to create your account right now.')
   } finally {
     isSubmitting.value = false
   }
@@ -321,28 +352,12 @@ const handleSubmit = async (): Promise<void> => {
               </Field>
               <FieldDescription> Must be at least 8 characters long. </FieldDescription>
             </Field>
-            <Field v-if="errorMessage">
-              <FieldError>{{ errorMessage }}</FieldError>
-            </Field>
             <Field>
               <Button type="submit" :disabled="isSubmitting">
                 {{ isSubmitting ? 'Creating account...' : 'Create Account' }}
               </Button>
             </Field>
-            <FieldSeparator class="*:data-[slot=field-separator-content]:bg-card">
-              Or continue with
-            </FieldSeparator>
-            <Field>
-              <Button variant="outline" type="button">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                  <path
-                    d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
-                    fill="currentColor"
-                  />
-                </svg>
-                <span class="sr-only">Sign up with Google</span>
-              </Button>
-            </Field>
+
             <FieldDescription class="text-center">
               Already have an account? <a href="/auth">Sign in</a>
             </FieldDescription>
