@@ -4,10 +4,10 @@ import { useRouter } from 'vue-router'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { useAlertContext } from '@/composables/useAlert'
-import { signInWithEmail } from '@/services/auth.service'
+import { AuthServiceError, signInWithEmail } from '@/services/auth.service'
 import logoImage from '@/assets/images/logo.png'
 
 const props = defineProps<{
@@ -15,18 +15,23 @@ const props = defineProps<{
 }>()
 
 const router = useRouter()
-const { showSuccess } = useAlertContext()
+const { showAlert, showSuccess } = useAlertContext()
 const showPassword = ref(false)
 const email = ref('')
 const password = ref('')
 const isSubmitting = ref(false)
-const errorMessage = ref('')
+
+const showErrorAlert = (description: string, title = 'Login failed'): void => {
+  showAlert({
+    title,
+    description,
+    tone: 'destructive',
+  })
+}
 
 const handleSubmit = async (): Promise<void> => {
-  errorMessage.value = ''
-
   if (!email.value || !password.value) {
-    errorMessage.value = 'Please enter your email and password.'
+    showErrorAlert('Please enter your email and password.', 'Missing credentials')
     return
   }
 
@@ -44,7 +49,17 @@ const handleSubmit = async (): Promise<void> => {
 
     await router.push('/admin')
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Unable to sign in right now.'
+    if (error instanceof AuthServiceError) {
+      showErrorAlert(error.message)
+      return
+    }
+
+    if (error instanceof Error) {
+      showErrorAlert(error.message)
+      return
+    }
+
+    showErrorAlert('Unable to sign in right now.')
   } finally {
     isSubmitting.value = false
   }
@@ -131,9 +146,6 @@ const handleSubmit = async (): Promise<void> => {
                   <span class="sr-only">{{ showPassword ? 'Hide' : 'Show' }} password</span>
                 </button>
               </div>
-            </Field>
-            <Field v-if="errorMessage">
-              <FieldError>{{ errorMessage }}</FieldError>
             </Field>
             <Field>
               <Button type="submit" :disabled="isSubmitting">

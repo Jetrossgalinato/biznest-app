@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { useAlertContext } from '@/composables/useAlert'
 import { AuthServiceError, signUpWithEmail } from '@/services/auth.service'
@@ -24,7 +24,7 @@ const props = defineProps<{
 }>()
 
 const router = useRouter()
-const { showSuccess } = useAlertContext()
+const { showAlert, showSuccess } = useAlertContext()
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const email = ref('')
@@ -36,26 +36,12 @@ const cities = ref<CityOption[]>([])
 const isFetchingCities = ref(false)
 const isSubmitting = ref(false)
 
-type RegisterFormField = 'email' | 'username' | 'city' | 'password' | 'confirmPassword' | 'general'
-
-const formErrors = ref<Record<RegisterFormField, string>>({
-  email: '',
-  username: '',
-  city: '',
-  password: '',
-  confirmPassword: '',
-  general: '',
-})
-
-const clearFormErrors = (): void => {
-  formErrors.value = {
-    email: '',
-    username: '',
-    city: '',
-    password: '',
-    confirmPassword: '',
-    general: '',
-  }
+const showErrorAlert = (description: string, title = 'Registration failed'): void => {
+  showAlert({
+    title,
+    description,
+    tone: 'destructive',
+  })
 }
 
 const selectedCityName = computed(() => {
@@ -76,7 +62,10 @@ const fetchCities = async (): Promise<void> => {
   try {
     cities.value = await fetchPhilippineCities()
   } catch (error) {
-    formErrors.value.city = error instanceof Error ? error.message : 'Unable to load cities.'
+    showErrorAlert(
+      error instanceof Error ? error.message : 'Unable to load cities.',
+      'City list error',
+    )
   } finally {
     isFetchingCities.value = false
   }
@@ -87,40 +76,43 @@ onMounted(() => {
 })
 
 const handleSubmit = async (): Promise<void> => {
-  clearFormErrors()
+  const missingFields: string[] = []
 
   if (!email.value) {
-    formErrors.value.email = 'Email is required.'
+    missingFields.push('Email is required.')
   }
 
   if (!username.value) {
-    formErrors.value.username = 'Username is required.'
+    missingFields.push('Username is required.')
   }
 
   if (!cityId.value) {
-    formErrors.value.city = 'Please select your city.'
+    missingFields.push('Please select your city.')
   }
 
   if (!password.value) {
-    formErrors.value.password = 'Password is required.'
+    missingFields.push('Password is required.')
   }
 
   if (!confirmPassword.value) {
-    formErrors.value.confirmPassword = 'Please confirm your password.'
+    missingFields.push('Please confirm your password.')
   }
 
-  if (Object.values(formErrors.value).some((message) => message.length > 0)) {
-    formErrors.value.general = 'Please fill in all required fields.'
+  if (missingFields.length > 0) {
+    showErrorAlert(
+      `Please fill in all required fields. ${missingFields.join(' ')}`,
+      'Missing information',
+    )
     return
   }
 
   if (password.value.length < 8) {
-    formErrors.value.password = 'Password must be at least 8 characters long.'
+    showErrorAlert('Password must be at least 8 characters long.', 'Weak password')
     return
   }
 
   if (password.value !== confirmPassword.value) {
-    formErrors.value.confirmPassword = 'Passwords do not match.'
+    showErrorAlert('Passwords do not match.', 'Password mismatch')
     return
   }
 
@@ -157,25 +149,16 @@ const handleSubmit = async (): Promise<void> => {
     confirmPassword.value = ''
   } catch (error) {
     if (error instanceof AuthServiceError) {
-      switch (error.field) {
-        case 'email':
-          formErrors.value.email = error.message
-          break
-        case 'username':
-          formErrors.value.username = error.message
-          break
-        case 'password':
-          formErrors.value.password = error.message
-          break
-        default:
-          formErrors.value.general = error.message
-          break
-      }
-    } else if (error instanceof Error) {
-      formErrors.value.general = error.message
-    } else {
-      formErrors.value.general = 'Unable to create your account right now.'
+      showErrorAlert(error.message)
+      return
     }
+
+    if (error instanceof Error) {
+      showErrorAlert(error.message)
+      return
+    }
+
+    showErrorAlert('Unable to create your account right now.')
   } finally {
     isSubmitting.value = false
   }
@@ -204,7 +187,6 @@ const handleSubmit = async (): Promise<void> => {
                 autocomplete="email"
                 required
               />
-              <FieldError v-if="formErrors.email">{{ formErrors.email }}</FieldError>
               <FieldDescription>
                 We'll use this to contact you. We will not share your email with anyone else.
               </FieldDescription>
@@ -219,7 +201,6 @@ const handleSubmit = async (): Promise<void> => {
                 autocomplete="username"
                 required
               />
-              <FieldError v-if="formErrors.username">{{ formErrors.username }}</FieldError>
             </Field>
             <Field>
               <FieldLabel for="city"> City </FieldLabel>
@@ -251,7 +232,6 @@ const handleSubmit = async (): Promise<void> => {
                   </template>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <FieldError v-if="formErrors.city">{{ formErrors.city }}</FieldError>
             </Field>
             <Field>
               <Field class="grid grid-cols-2 gap-4">
@@ -309,7 +289,6 @@ const handleSubmit = async (): Promise<void> => {
                       <span class="sr-only">{{ showPassword ? 'Hide' : 'Show' }} password</span>
                     </button>
                   </div>
-                  <FieldError v-if="formErrors.password">{{ formErrors.password }}</FieldError>
                 </Field>
                 <Field>
                   <FieldLabel for="confirm-password"> Confirm Password </FieldLabel>
@@ -367,15 +346,9 @@ const handleSubmit = async (): Promise<void> => {
                       >
                     </button>
                   </div>
-                  <FieldError v-if="formErrors.confirmPassword">{{
-                    formErrors.confirmPassword
-                  }}</FieldError>
                 </Field>
               </Field>
               <FieldDescription> Must be at least 8 characters long. </FieldDescription>
-            </Field>
-            <Field v-if="formErrors.general">
-              <FieldError>{{ formErrors.general }}</FieldError>
             </Field>
             <Field>
               <Button type="submit" :disabled="isSubmitting">
