@@ -70,6 +70,7 @@ export function useAdminMap() {
   const drawPoints = ref<MapDrawPoint[]>([])
   const showMappedZoneModal = ref(false)
   const selectedMappedZoneId = ref<string | null>(null)
+  const editingMappedZoneGeometryId = ref<string | null>(null)
 
   // ── Hazard state ───────────────────────────────────────────────────────────
   const cityId = ref<string | null>(null)
@@ -112,6 +113,11 @@ export function useAdminMap() {
     isHazardPlacementActive.value ? hazardDrawPoints.value : drawPoints.value,
   )
   const isAnyDrawModeActive = computed(() => isDrawMode.value || isHazardPlacementActive.value)
+  const editingMappedZoneGeometry = computed(() =>
+    mappedZones.value.find((zone) => zone.id === editingMappedZoneGeometryId.value) ?? null,
+  )
+  const isEditingMappedZoneGeometry = computed(() => editingMappedZoneGeometry.value !== null)
+  const editingMappedZoneGeometryName = computed(() => editingMappedZoneGeometry.value?.name ?? '')
 
   function buildZoningLayersSignature(layers: ZoningLayer[]): string {
     return layers
@@ -357,21 +363,79 @@ export function useAdminMap() {
     }
     zoningError.value = ''
     drawPoints.value = []
+    editingMappedZoneGeometryId.value = null
     isDrawMode.value = true
+  }
+
+  function handleStartEditMappedZoneGeometry(zoneId: string): void {
+    if (isHazardPlacementActive.value) {
+      cancelHazardPlacement()
+    }
+
+    const zone = mappedZones.value.find((mappedZone) => mappedZone.id === zoneId)
+    if (!zone) {
+      zoningError.value = 'Unable to find the selected mapped zone.'
+      return
+    }
+
+    zoningError.value = ''
+    selectedMappedZoneId.value = zone.id
+    showMappedZoneModal.value = false
+    editingMappedZoneGeometryId.value = zone.id
+    drawPoints.value = zone.points.map((point) => ({ lat: point.lat, lng: point.lng }))
+    isDrawMode.value = true
+
+    if (zone.points.length > 0) {
+      void mapRef.value?.focusOnZone(zone.points)
+    }
   }
 
   function cancelDrawZoneMode(): void {
     isDrawMode.value = false
     drawPoints.value = []
     showMappedZoneModal.value = false
+    editingMappedZoneGeometryId.value = null
   }
 
-  function finishDrawZoneMode(): void {
+  async function finishDrawZoneMode(): Promise<void> {
     if (drawPoints.value.length < 3) {
       zoningError.value = 'Draw at least 3 points to create a polygon.'
       return
     }
+
+    if (editingMappedZoneGeometry.value) {
+      await handleSaveEditedMappedZoneGeometry()
+      return
+    }
+
     showMappedZoneModal.value = true
+  }
+
+  async function handleSaveEditedMappedZoneGeometry(): Promise<void> {
+    const targetZone = editingMappedZoneGeometry.value
+
+    if (!targetZone) {
+      zoningError.value = 'No mapped zone is selected for geometry editing.'
+      return
+    }
+
+    isSavingMappedZone.value = true
+    zoningError.value = ''
+    try {
+      await updateMappedZone(targetZone.id, {
+        zoningLayerId: targetZone.zoning_layer_id,
+        name: targetZone.name,
+        description: targetZone.description ?? '',
+        points: drawPoints.value,
+      })
+      await loadMappedZones()
+      cancelDrawZoneMode()
+      selectedMappedZoneId.value = targetZone.id
+    } catch (error) {
+      zoningError.value = error instanceof Error ? error.message : 'Failed to update mapped zone geometry.'
+    } finally {
+      isSavingMappedZone.value = false
+    }
   }
 
   // ── Hazard placement ───────────────────────────────────────────────────────
@@ -788,9 +852,12 @@ export function useAdminMap() {
     drawPoints,
     showMappedZoneModal,
     selectedMappedZoneId,
+    isEditingMappedZoneGeometry,
+    editingMappedZoneGeometryName,
     isAnyDrawModeActive,
     activeDrawPoints,
     startDrawZoneMode,
+    handleStartEditMappedZoneGeometry,
     cancelDrawZoneMode,
     finishDrawZoneMode,
     handleSaveMappedZone,

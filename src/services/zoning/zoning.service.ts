@@ -302,6 +302,39 @@ export async function updateMappedZone(
   input: UpdateMappedZoneInput,
 ): Promise<void> {
   const supabase = getSupabaseClient()
+
+  if (input.points) {
+    if (input.points.length < 3) {
+      throw new Error('A mapped zone needs at least 3 points.')
+    }
+
+    const polygonRing = normalizePolygonPoints(input.points)
+    const geometry = {
+      type: 'Polygon',
+      coordinates: [polygonRing],
+    }
+
+    const { error } = await supabase.rpc('update_mapped_zone', {
+      p_zone_id: zoneId,
+      p_zoning_layer_id: input.zoningLayerId,
+      p_name: input.name.trim(),
+      p_description: input.description.trim() || null,
+      p_geojson: geometry,
+    })
+
+    if (error) {
+      if (error.message.includes('Invalid zoning layer for current city')) {
+        throw new Error(
+          'Selected zoning layer does not belong to your assigned city. Reload zoning layers and pick a valid layer.',
+        )
+      }
+
+      throw new Error(error.message)
+    }
+
+    return
+  }
+
   const cityId = await getCurrentCityId()
   const payload = {
     zoning_layer_id: input.zoningLayerId,

@@ -19,6 +19,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'update-mapped-zone', zoneId: string): void
+  (e: 'edit-mapped-zone-geometry', zoneId: string): void
   (e: 'delete-mapped-zone', zoneId: string): void
   (e: 'select-mapped-zone', zoneId: string): void
 }>()
@@ -39,6 +40,15 @@ const zones = computed(() => {
         >
           <TypographySmall as="span" class="block truncate text-xs font-medium">{{ zone.name }}</TypographySmall>
         </button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          title="Edit mapped zone polygon"
+          :disabled="isSubmitting"
+          @click="emit('edit-mapped-zone-geometry', zone.id)"
+        >
+          <span class="text-[10px] font-semibold">Shape</span>
+        </Button>
         <Button
           variant="ghost"
           size="icon-sm"

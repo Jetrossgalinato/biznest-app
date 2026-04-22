@@ -65,4 +65,5 @@ export interface UpdateMappedZoneInput {
   zoningLayerId: string
   name: string
   description: string
+  points?: MapDrawPoint[]
 }
