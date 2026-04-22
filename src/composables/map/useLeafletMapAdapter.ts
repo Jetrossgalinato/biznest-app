@@ -264,6 +264,7 @@ export function useLeafletMapAdapter(options: LeafletAdapterOptions) {
           opacity: 0.95,
           fillColor: zone.zoning_color,
           fillOpacity: 0.22,
+          interactive: !isDrawMode,
         },
       )
         .bindPopup(`<strong>${zone.name}</strong><br/>${zone.zoning_title}`)
@@ -296,12 +297,14 @@ export function useLeafletMapAdapter(options: LeafletAdapterOptions) {
         fillColor: '#2563eb',
         fillOpacity: 0.16,
         dashArray: '5, 5',
+        interactive: false,
       }).addTo(layerGroup)
     } else if (drawPoints.length >= 2) {
       L.polyline(positions, {
         color: '#2563eb',
         weight: 2,
         dashArray: '5, 5',
+        interactive: false,
       }).addTo(layerGroup)
     }
 

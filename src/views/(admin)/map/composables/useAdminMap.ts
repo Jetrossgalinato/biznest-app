@@ -723,6 +723,7 @@ export function useAdminMap() {
     mapRef.value?.setDrawMode(enabled)
     mapRef.value?.setMapClickHandler(enabled ? handleMapClick : null)
     mapRef.value?.setDrawPointMoveHandler(enabled ? handleDrawPointMove : null)
+    await mapRef.value?.renderMappedZones(visibleMappedZones.value)
     await mapRef.value?.renderDrawPreview(activeDrawPoints.value)
   })
 
