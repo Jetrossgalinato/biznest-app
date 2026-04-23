@@ -116,7 +116,7 @@ export function useAdminMap() {
   const editingMappedZoneGeometry = computed(() =>
     mappedZones.value.find((zone) => zone.id === editingMappedZoneGeometryId.value) ?? null,
   )
-  const isEditingMappedZoneGeometry = computed(() => editingMappedZoneGeometry.value !== null)
+  const isEditingMappedZoneGeometry = computed(() => editingMappedZoneGeometryId.value !== null)
   const editingMappedZoneGeometryName = computed(() => editingMappedZoneGeometry.value?.name ?? '')
 
   function buildZoningLayersSignature(layers: ZoningLayer[]): string {
@@ -403,10 +403,10 @@ export function useAdminMap() {
       return
     }
 
-    if (editingMappedZoneGeometry.value) {
-      await handleSaveEditedMappedZoneGeometry()
-      return
-    }
+    if (editingMappedZoneGeometryId.value !== null) {
+       await handleSaveEditedMappedZoneGeometry()
+       return
+     }
 
     showMappedZoneModal.value = true
   }
