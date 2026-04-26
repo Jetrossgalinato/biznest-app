@@ -4,36 +4,34 @@ import { useRouter } from 'vue-router'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-  FieldSeparator,
-} from '@/components/ui/field'
+import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { useAlertContext } from '@/composables/useAlert'
-import { signInWithEmail } from '@/services/auth.service'
-import logoImage from '@/assets/images/logo.png'
+import { AuthServiceError, signInWithEmail } from '@/services/auth.service'
+import logoImage from '/login.png'
 
 const props = defineProps<{
   class?: HTMLAttributes['class']
 }>()
 
 const router = useRouter()
-const { showSuccess } = useAlertContext()
+const { showAlert, showSuccess } = useAlertContext()
 const showPassword = ref(false)
 const email = ref('')
 const password = ref('')
 const isSubmitting = ref(false)
-const errorMessage = ref('')
+
+const showErrorAlert = (description: string, title = 'Login failed'): void => {
+  showAlert({
+    title,
+    description,
+    tone: 'destructive',
+  })
+}
 
 const handleSubmit = async (): Promise<void> => {
-  errorMessage.value = ''
-
   if (!email.value || !password.value) {
-    errorMessage.value = 'Please enter your email and password.'
+    showErrorAlert('Please enter your email and password.', 'Missing credentials')
     return
   }
 
@@ -51,7 +49,17 @@ const handleSubmit = async (): Promise<void> => {
 
     await router.push('/admin')
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Unable to sign in right now.'
+    if (error instanceof AuthServiceError) {
+      showErrorAlert(error.message)
+      return
+    }
+
+    if (error instanceof Error) {
+      showErrorAlert(error.message)
+      return
+    }
+
+    showErrorAlert('Unable to sign in right now.')
   } finally {
     isSubmitting.value = false
   }
@@ -65,7 +73,7 @@ const handleSubmit = async (): Promise<void> => {
         <form class="p-6 md:p-8" @submit.prevent="handleSubmit">
           <FieldGroup>
             <div class="flex flex-col items-center gap-2 text-center">
-              <h1 class="text-2xl font-semibold">Welcome back</h1>
+              <h1 class="text-2xl font-semibold">Welcome back!</h1>
               <p class="text-muted-foreground text-balance">Login to your BizNest account</p>
             </div>
             <Field>
@@ -139,28 +147,12 @@ const handleSubmit = async (): Promise<void> => {
                 </button>
               </div>
             </Field>
-            <Field v-if="errorMessage">
-              <FieldError>{{ errorMessage }}</FieldError>
-            </Field>
             <Field>
               <Button type="submit" :disabled="isSubmitting">
                 {{ isSubmitting ? 'Logging in...' : 'Login' }}
               </Button>
             </Field>
-            <FieldSeparator class="*:data-[slot=field-separator-content]:bg-card">
-              Or continue with
-            </FieldSeparator>
-            <Field>
-              <Button variant="outline" type="button">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                  <path
-                    d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
-                    fill="currentColor"
-                  />
-                </svg>
-                <span class="sr-only">Login with Google</span>
-              </Button>
-            </Field>
+
             <FieldDescription class="text-center">
               Don't have an account?
               <a href="/auth/register"> Sign up </a>
@@ -171,7 +163,7 @@ const handleSubmit = async (): Promise<void> => {
           <img
             :src="logoImage"
             alt="Image"
-            class="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+            class="absolute inset-0 h-full w-full object-cover dark:brightness-75"
           />
         </div>
       </CardContent>

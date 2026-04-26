@@ -33,17 +33,19 @@ import {
 
 //separate UI components and logic for better readability and maintainability
 import { useAlertContext } from '@/composables/useAlert'
-import { signUpWithEmail } from '@/services/auth.service'
+import { AuthServiceError, signUpWithEmail } from '@/services/auth.service'
 import { fetchPhilippineCities } from '@/services/cities.service'
 import type { CityOption } from '@/services/cities.service'
-import { Check, Loader2 } from 'lucide-vue-next'
+import { Check} from 'lucide-vue-next'
+import logoImage from '/register.png'
+import { Loader2 } from 'lucide-vue-next'
 
 const props = defineProps<{
   class?: HTMLAttributes['class']
 }>()
 
 const router = useRouter()
-const { showSuccess } = useAlertContext()
+const { showAlert, showSuccess } = useAlertContext()
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const email = ref('')
@@ -95,7 +97,10 @@ const fetchCities = async (): Promise<void> => {
   try {
     cities.value = await fetchPhilippineCities()
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Unable to load cities.'
+    showErrorAlert(
+      error instanceof Error ? error.message : 'Unable to load cities.',
+      'City list error',
+    )
   } finally {
     isFetchingCities.value = false
   }
@@ -223,8 +228,8 @@ const handleSubmit = async (): Promise<void> => {
     const inviteToken = typeof inviteQuery === 'string' ? inviteQuery : undefined
 
     const response = await signUpWithEmail({
-      username: username.value,
-      email: email.value,
+      username: normalizedUsername,
+      email: normalizedEmail,
       password: password.value,
       city_id: cityId.value,
       city_name: selectedCityName.value,
@@ -248,8 +253,17 @@ const handleSubmit = async (): Promise<void> => {
     password.value = ''
     confirmPassword.value = ''
   } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Unable to create your account right now.'
+    if (error instanceof AuthServiceError) {
+      showErrorAlert(error.message)
+      return
+    }
+
+    if (error instanceof Error) {
+      showErrorAlert(error.message)
+      return
+    }
+
+    showErrorAlert('Unable to create your account right now.')
   } finally {
     isSubmitting.value = false
   }
@@ -464,38 +478,22 @@ const handleSubmit = async (): Promise<void> => {
               </Field>
               <FieldDescription> Must be at least 8 characters long. </FieldDescription>
             </Field>
-            <Field v-if="errorMessage">
-              <FieldError>{{ errorMessage }}</FieldError>
-            </Field>
             <Field>
               <Button type="submit" :disabled="isSubmitting">
                 {{ isSubmitting ? 'Creating account...' : 'Create Account' }}
               </Button>
             </Field>
-            <FieldSeparator class="*:data-[slot=field-separator-content]:bg-card">
-              Or continue with
-            </FieldSeparator>
-            <Field>
-              <Button variant="outline" type="button">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                  <path
-                    d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
-                    fill="currentColor"
-                  />
-                </svg>
-                <span class="sr-only">Sign up with Google</span>
-              </Button>
-            </Field>
+
             <FieldDescription class="text-center">
               Already have an account? <a href="/auth">Sign in</a>
             </FieldDescription>
           </FieldGroup>
         </form>
-        <div class="bg-muted relative hidden md:block">
+        <div class="bg-muted relative hidden md:flex items-center justify-center overflow-hidden">
           <img
             :src="logoImage"
-            alt="Image"
-            class="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+            alt="BizNest Mascot"
+            class="h-full w-full object-contain scale-175"
           />
         </div>
       </CardContent>
