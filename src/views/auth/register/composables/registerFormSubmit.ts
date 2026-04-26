@@ -62,7 +62,6 @@ export interface UseRegisterFormOptions {
 
 export function useRegisterFormSubmit({
   cities,
-  isFetchingCities,
   router,
 }: UseRegisterFormOptions): UseRegisterFormReturn {
   const { showAlert, showSuccess } = useAlertContext()
