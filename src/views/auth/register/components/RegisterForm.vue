@@ -1,21 +1,26 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, type HTMLAttributes } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, ref, type HTMLAttributes } from 'vue'
+import { useRouter, RouterLink } from 'vue-router'
 import { cn } from '@/lib/utils'
+import { useRegisterFormSubmit } from '../composables/registerFormSubmit'
+import { fetchPhilippineCities } from '@/services/cities.service'
+import type { CityOption } from '@/services/cities.service'
+
+//ui components e separate ni for better readability, since there are a lot of them
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
+  Combobox,
+  ComboboxAnchor,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxItemIndicator,
+  ComboboxList,
+} from '@/components/ui/combobox'
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { useAlertContext } from '@/composables/useAlert'
-import { AuthServiceError, signUpWithEmail } from '@/services/auth.service'
-import { fetchPhilippineCities } from '@/services/cities.service'
-import type { CityOption } from '@/services/cities.service'
+import { Check } from 'lucide-vue-next'
 import logoImage from '/register.png'
 import { Loader2 } from 'lucide-vue-next'
 
@@ -24,34 +29,31 @@ const props = defineProps<{
 }>()
 
 const router = useRouter()
-const { showAlert, showSuccess } = useAlertContext()
-const showPassword = ref(false)
-const showConfirmPassword = ref(false)
-const email = ref('')
-const username = ref('')
-const cityId = ref('')
-const password = ref('')
-const confirmPassword = ref('')
+
+// Form state
 const cities = ref<CityOption[]>([])
 const isFetchingCities = ref(false)
-const isSubmitting = ref(false)
 
-const showErrorAlert = (description: string, title = 'Registration failed'): void => {
-  showAlert({
-    title,
-    description,
-    tone: 'destructive',
-  })
-}
-
-const selectedCityName = computed(() => {
-  if (!cityId.value) {
-    return ''
-  }
-
-  return cities.value.find((city) => city.id === cityId.value)?.name ?? ''
+// Use the form submission composable
+const {
+  email,
+  username,
+  cityId,
+  password,
+  confirmPassword,
+  showPassword,
+  showConfirmPassword,
+  isSubmitting,
+  fieldErrors,
+  getCityDisplayValue,
+  handleSubmit,
+} = useRegisterFormSubmit({
+  cities,
+  isFetchingCities,
+  router,
 })
 
+// Fetch cities on mount
 const fetchCities = async (): Promise<void> => {
   if (cities.value.length > 0) {
     return
@@ -61,11 +63,9 @@ const fetchCities = async (): Promise<void> => {
 
   try {
     cities.value = await fetchPhilippineCities()
-  } catch (error) {
-    showErrorAlert(
-      error instanceof Error ? error.message : 'Unable to load cities.',
-      'City list error',
-    )
+  } catch {
+    // Error handling is done in the composable via showAlert
+    console.log('Error fetching cities, handled in composable')
   } finally {
     isFetchingCities.value = false
   }
@@ -75,96 +75,8 @@ onMounted(() => {
   void fetchCities()
 })
 
-const handleSubmit = async (): Promise<void> => {
-  const normalizedEmail = email.value.trim()
-  const normalizedUsername = username.value.trim()
-  const missingFields: string[] = []
-
-  if (!normalizedEmail) {
-    missingFields.push('Email is required.')
-  }
-
-  if (!normalizedUsername) {
-    missingFields.push('Username is required.')
-  }
-
-  if (!cityId.value) {
-    missingFields.push('Please select your city.')
-  }
-
-  if (!password.value) {
-    missingFields.push('Password is required.')
-  }
-
-  if (!confirmPassword.value) {
-    missingFields.push('Please confirm your password.')
-  }
-
-  if (missingFields.length > 0) {
-    showErrorAlert(
-      `Please fill in all required fields. ${missingFields.join(' ')}`,
-      'Missing information',
-    )
-    return
-  }
-
-  if (password.value.length < 8) {
-    showErrorAlert('Password must be at least 8 characters long.', 'Weak password')
-    return
-  }
-
-  if (password.value !== confirmPassword.value) {
-    showErrorAlert('Passwords do not match.', 'Password mismatch')
-    return
-  }
-
-  isSubmitting.value = true
-
-  try {
-    const inviteQuery = router.currentRoute.value.query.invite
-    const inviteToken = typeof inviteQuery === 'string' ? inviteQuery : undefined
-
-    const response = await signUpWithEmail({
-      username: normalizedUsername,
-      email: normalizedEmail,
-      password: password.value,
-      city_id: cityId.value,
-      city_name: selectedCityName.value,
-      inviteToken,
-    })
-
-    if (response.session) {
-      showSuccess('Your account has been created and you are now signed in.', {
-        title: 'Account created',
-      })
-      await router.push('/')
-      return
-    }
-
-    showSuccess('Check your inbox to confirm your email before signing in.', {
-      title: 'Account created',
-      durationMs: 4500,
-    })
-    await router.push('/auth')
-
-    password.value = ''
-    confirmPassword.value = ''
-  } catch (error) {
-    if (error instanceof AuthServiceError) {
-      showErrorAlert(error.message)
-      return
-    }
-
-    if (error instanceof Error) {
-      showErrorAlert(error.message)
-      return
-    }
-
-    showErrorAlert('Unable to create your account right now.')
-  } finally {
-    isSubmitting.value = false
-  }
-}
+// Re-export handleSubmit for the form submit event
+// The composable's handleSubmit is already bound to the form state
 </script>
 
 <template>
@@ -187,11 +99,13 @@ const handleSubmit = async (): Promise<void> => {
                 type="email"
                 placeholder="m@example.com"
                 autocomplete="email"
+                :disabled="isSubmitting"
                 required
               />
               <FieldDescription>
                 We'll use this to contact you. We will not share your email with anyone else.
               </FieldDescription>
+              <FieldError v-if="fieldErrors.email">{{ fieldErrors.email }}</FieldError>
             </Field>
             <Field>
               <FieldLabel for="username"> Username </FieldLabel>
@@ -201,39 +115,56 @@ const handleSubmit = async (): Promise<void> => {
                 type="text"
                 placeholder="yourname"
                 autocomplete="username"
+                :disabled="isSubmitting"
                 required
               />
+              <FieldError v-if="fieldErrors.username">{{ fieldErrors.username }}</FieldError>
             </Field>
             <Field>
               <FieldLabel for="city"> City </FieldLabel>
-              <DropdownMenu>
-                <DropdownMenuTrigger as-child>
-                  <Button
+              <Combobox
+                v-model="cityId"
+                open-on-focus
+                open-on-click
+                :disabled="isFetchingCities || isSubmitting"
+              >
+                <ComboboxAnchor class="w-full">
+                  <ComboboxInput
                     id="city"
-                    variant="outline"
-                    class="w-full justify-start font-normal"
-                    :class="!cityId && 'text-muted-foreground'"
+                    class="w-full"
+                    placeholder="Select a city"
+                    :display-value="getCityDisplayValue"
                     :disabled="isFetchingCities || isSubmitting"
-                  >
-                    {{ selectedCityName || 'Select a city' }}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" class="w-[420px] max-h-[300px] overflow-y-auto">
+                  />
+                </ComboboxAnchor>
+
+                <ComboboxList
+                  align="start"
+                  class="max-h-75 w-(--reka-combobox-trigger-width) overflow-y-auto"
+                >
                   <div v-if="isFetchingCities" class="text-muted-foreground p-3 text-sm">
                     <Loader2 class="mr-2 inline-block h-4 w-4 animate-spin" />
                     Loading cities...
                   </div>
+
                   <template v-else>
-                    <DropdownMenuItem
+                    <ComboboxEmpty>No cities found.</ComboboxEmpty>
+
+                    <ComboboxItem
                       v-for="city in cities"
                       :key="city.id"
-                      @click="cityId = city.id"
+                      :value="city.id"
+                      :text-value="city.name"
                     >
-                      {{ city.name }}
-                    </DropdownMenuItem>
+                      <span>{{ city.name }}</span>
+                      <ComboboxItemIndicator>
+                        <Check class="h-4 w-4" />
+                      </ComboboxItemIndicator>
+                    </ComboboxItem>
                   </template>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                </ComboboxList>
+              </Combobox>
+              <FieldError v-if="fieldErrors.city">{{ fieldErrors.city }}</FieldError>
             </Field>
             <Field>
               <Field class="grid grid-cols-2 gap-4">
@@ -246,6 +177,7 @@ const handleSubmit = async (): Promise<void> => {
                       :type="showPassword ? 'text' : 'password'"
                       class="pr-10"
                       autocomplete="new-password"
+                      :disabled="isSubmitting"
                       required
                     />
                     <button
@@ -291,6 +223,7 @@ const handleSubmit = async (): Promise<void> => {
                       <span class="sr-only">{{ showPassword ? 'Hide' : 'Show' }} password</span>
                     </button>
                   </div>
+                  <FieldError v-if="fieldErrors.password">{{ fieldErrors.password }}</FieldError>
                 </Field>
                 <Field>
                   <FieldLabel for="confirm-password"> Confirm Password </FieldLabel>
@@ -301,6 +234,7 @@ const handleSubmit = async (): Promise<void> => {
                       :type="showConfirmPassword ? 'text' : 'password'"
                       class="pr-10"
                       autocomplete="new-password"
+                      :disabled="isSubmitting"
                       required
                     />
                     <button
@@ -348,6 +282,9 @@ const handleSubmit = async (): Promise<void> => {
                       >
                     </button>
                   </div>
+                  <FieldError v-if="fieldErrors.confirmPassword">{{
+                    fieldErrors.confirmPassword
+                  }}</FieldError>
                 </Field>
               </Field>
               <FieldDescription> Must be at least 8 characters long. </FieldDescription>
@@ -359,7 +296,10 @@ const handleSubmit = async (): Promise<void> => {
             </Field>
 
             <FieldDescription class="text-center">
-              Already have an account? <a href="/auth">Sign in</a>
+              Already have an account?
+              <RouterLink :to="{ name: 'login' }" class="underline-offset-2 hover:underline"
+                >Sign in</RouterLink
+              >
             </FieldDescription>
           </FieldGroup>
         </form>
