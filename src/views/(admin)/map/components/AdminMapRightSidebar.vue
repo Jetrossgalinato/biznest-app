@@ -38,6 +38,7 @@ const emit = defineEmits<{
   (e: 'update-layer', payload: { layerId: string; input: UpdateZoningLayerInput }): void
   (e: 'delete-layer', layerId: string): void
   (e: 'update-mapped-zone', payload: { zoneId: string; input: UpdateMappedZoneInput }): void
+  (e: 'edit-mapped-zone-geometry', zoneId: string): void
   (e: 'delete-mapped-zone', zoneId: string): void
   (e: 'focus-mapped-zone', zoneId: string): void
   (e: 'toggle-layer-visibility', payload: { layerId: string; isActive: boolean }): void

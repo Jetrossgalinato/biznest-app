@@ -50,7 +50,10 @@ const {
   isDrawMode,
   drawPoints,
   showMappedZoneModal,
+  isEditingMappedZoneGeometry,
+  editingMappedZoneGeometryName,
   startDrawZoneMode,
+  handleStartEditMappedZoneGeometry,
   cancelDrawZoneMode,
   finishDrawZoneMode,
   undoLastDrawPoint,
@@ -168,7 +171,12 @@ const {
         v-else-if="isDrawMode"
         class="absolute left-3 top-24 z-900 rounded-md border bg-card/95 px-3 py-2 shadow"
       >
-        <TypographySmall as="p" class="text-xs font-medium">Draw Mode Active</TypographySmall>
+        <TypographySmall as="p" class="text-xs font-medium">
+          {{ isEditingMappedZoneGeometry ? 'Edit Polygon Mode' : 'Draw Mode Active' }}
+        </TypographySmall>
+        <TypographyMuted v-if="isEditingMappedZoneGeometry" as="p" class="text-xs">
+          Editing: {{ editingMappedZoneGeometryName }}
+        </TypographyMuted>
         <TypographyMuted as="p" class="text-xs">{{ drawPoints.length }} points</TypographyMuted>
         <div class="mt-2 flex gap-2">
           <Button
@@ -183,7 +191,9 @@ const {
             <TypographySmall as="span">Cancel</TypographySmall>
           </Button>
           <Button size="sm" :disabled="drawPoints.length < 3" @click="finishDrawZoneMode">
-            <TypographySmall as="span">Save Polygon</TypographySmall>
+            <TypographySmall as="span">
+              {{ isEditingMappedZoneGeometry ? 'Update Polygon' : 'Save Polygon' }}
+            </TypographySmall>
           </Button>
         </div>
       </div>
@@ -249,6 +259,7 @@ const {
         @update-layer="handleUpdateLayer"
         @delete-layer="handleDeleteLayer"
         @update-mapped-zone="handleUpdateMappedZone"
+        @edit-mapped-zone-geometry="handleStartEditMappedZoneGeometry"
         @delete-mapped-zone="handleDeleteMappedZone"
         @focus-mapped-zone="handleFocusMappedZone"
         @toggle-layer-visibility="handleToggleLayerVisibility"
