@@ -275,6 +275,7 @@ export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
         strokeWeight: 2,
         fillColor: zone.zoning_color,
         fillOpacity: 0.22,
+        clickable: !isDrawMode,
         map: googleMap as GoogleMapInstance,
       })
 
@@ -342,6 +343,7 @@ export function useGoogleMapAdapter(options: GoogleAdapterOptions) {
         strokeWeight: 2,
         fillColor: '#2563eb',
         fillOpacity: 0.16,
+        clickable: false,
         map: googleMap as GoogleMapInstance,
       })
       return
