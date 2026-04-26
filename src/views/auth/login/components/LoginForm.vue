@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, type HTMLAttributes } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, RouterLink } from 'vue-router'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -155,7 +155,7 @@ const handleSubmit = async (): Promise<void> => {
 
             <FieldDescription class="text-center">
               Don't have an account?
-              <a href="/auth/register"> Sign up </a>
+              <RouterLink :to="{ name: 'register' }" class="underline-offset-2 hover:underline">Sign up</RouterLink>
             </FieldDescription>
           </FieldGroup>
         </form>

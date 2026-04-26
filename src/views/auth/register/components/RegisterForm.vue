@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, type HTMLAttributes } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, RouterLink } from 'vue-router'
 import { cn } from '@/lib/utils'
 import { useRegisterFormSubmit } from '../composables/registerFormSubmit'
 import { fetchPhilippineCities } from '@/services/cities.service'
@@ -301,7 +301,8 @@ onMounted(() => {
             </Field>
 
             <FieldDescription class="text-center">
-              Already have an account? <a href="/auth">Sign in</a>
+              Already have an account?
+              <RouterLink :to="{ name: 'login' }" class="underline-offset-2 hover:underline">Sign in</RouterLink>
             </FieldDescription>
           </FieldGroup>
         </form>
