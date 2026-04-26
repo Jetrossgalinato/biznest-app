@@ -93,9 +93,7 @@ export function useAdminMap() {
 
   const visibleMappedZones = computed(() => {
     const activeLayerIds = new Set(
-      zoningLayers.value
-        .filter((layer) => layer.is_active)
-        .map((layer) => layer.id),
+      zoningLayers.value.filter((layer) => layer.is_active).map((layer) => layer.id),
     )
     return mappedZones.value.filter(
       (zone) => zone.is_visible && activeLayerIds.has(zone.zoning_layer_id),
@@ -120,9 +118,7 @@ export function useAdminMap() {
   const editingMappedZoneGeometryName = computed(() => editingMappedZoneGeometry.value?.name ?? '')
 
   function buildZoningLayersSignature(layers: ZoningLayer[]): string {
-    return layers
-      .map((layer) => `${layer.id}|${layer.is_active}|${layer.updated_at}`)
-      .join('||')
+    return layers.map((layer) => `${layer.id}|${layer.is_active}|${layer.updated_at}`).join('||')
   }
 
   function buildMappedZonesSignature(zones: MappedZone[]): string {
@@ -157,7 +153,9 @@ export function useAdminMap() {
     zoningError.value = ''
     try {
       const nextLayers = await listCityZoningLayers()
-      if (buildZoningLayersSignature(nextLayers) === buildZoningLayersSignature(zoningLayers.value)) {
+      if (
+        buildZoningLayersSignature(nextLayers) === buildZoningLayersSignature(zoningLayers.value)
+      ) {
         return
       }
 
@@ -550,7 +548,11 @@ export function useAdminMap() {
     const ring = hazardDrawPoints.value.map(toCoordinates)
     const [firstPoint] = ring
     const lastPoint = ring[ring.length - 1]
-    if (firstPoint && lastPoint && (firstPoint[0] !== lastPoint[0] || firstPoint[1] !== lastPoint[1])) {
+    if (
+      firstPoint &&
+      lastPoint &&
+      (firstPoint[0] !== lastPoint[0] || firstPoint[1] !== lastPoint[1])
+    ) {
       ring.push(firstPoint)
     }
     return { type: 'Polygon', coordinates: [ring] }
@@ -740,9 +742,13 @@ export function useAdminMap() {
     { deep: true },
   )
 
-  watch(visibleMappedZones, (zones) => {
-    void mapRef.value?.renderMappedZones(zones)
-  }, { deep: true })
+  watch(
+    visibleMappedZones,
+    (zones) => {
+      void mapRef.value?.renderMappedZones(zones)
+    },
+    { deep: true },
+  )
 
   watch(
     visibleHazards,
@@ -752,9 +758,13 @@ export function useAdminMap() {
     { deep: true },
   )
 
-  watch(activeDrawPoints, (points) => {
-    void mapRef.value?.renderDrawPreview(points)
-  }, { deep: true })
+  watch(
+    activeDrawPoints,
+    (points) => {
+      void mapRef.value?.renderDrawPreview(points)
+    },
+    { deep: true },
+  )
 
   watch(
     [selectedMappedZoneId, visibleMappedZones],

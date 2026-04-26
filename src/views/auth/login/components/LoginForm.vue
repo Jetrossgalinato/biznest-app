@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, type HTMLAttributes } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, RouterLink } from 'vue-router'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -8,7 +8,7 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui
 import { Input } from '@/components/ui/input'
 import { useAlertContext } from '@/composables/useAlert'
 import { AuthServiceError, signInWithEmail } from '@/services/auth.service'
-import logoImage from '@/assets/images/logo.png'
+import logoImage from '/login.png'
 
 const props = defineProps<{
   class?: HTMLAttributes['class']
@@ -73,7 +73,7 @@ const handleSubmit = async (): Promise<void> => {
         <form class="p-6 md:p-8" @submit.prevent="handleSubmit">
           <FieldGroup>
             <div class="flex flex-col items-center gap-2 text-center">
-              <h1 class="text-2xl font-semibold">Welcome back</h1>
+              <h1 class="text-2xl font-semibold">Welcome back!</h1>
               <p class="text-muted-foreground text-balance">Login to your BizNest account</p>
             </div>
             <Field>
@@ -155,7 +155,9 @@ const handleSubmit = async (): Promise<void> => {
 
             <FieldDescription class="text-center">
               Don't have an account?
-              <a href="/auth/register"> Sign up </a>
+              <RouterLink :to="{ name: 'register' }" class="underline-offset-2 hover:underline"
+                >Sign up</RouterLink
+              >
             </FieldDescription>
           </FieldGroup>
         </form>
@@ -163,7 +165,7 @@ const handleSubmit = async (): Promise<void> => {
           <img
             :src="logoImage"
             alt="Image"
-            class="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+            class="absolute inset-0 h-full w-full object-cover dark:brightness-75"
           />
         </div>
       </CardContent>

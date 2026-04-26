@@ -6,7 +6,13 @@ import AdminMapRightSidebar from '@/views/(admin)/map/components/AdminMapRightSi
 import AdminMapHazardSidebar from '@/views/(admin)/map/components/AdminMapHazardSidebar.vue'
 import MappedZoneFormModal from '@/views/(admin)/map/components/MappedZoneFormModal.vue'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { TypographyMuted, TypographySmall } from '@/components/typography'
 import { Globe, Layers, MapPin, MapPinOff, TriangleAlert } from 'lucide-vue-next'
@@ -86,7 +92,6 @@ const {
     Layout (left → right): [map canvas] [hazard panel?] [layer panel?] [icon strip]
   -->
   <div class="relative h-full w-full overflow-hidden">
-
     <!-- ── Map canvas ────────────────────────────────────────────────── -->
     <div class="relative h-full w-full pr-11">
       <Map ref="mapRef" :provider="provider" :center="mapCenter" @ready="onMapReady" />
@@ -121,7 +126,9 @@ const {
         v-if="isHazardPlacementActive"
         class="absolute left-3 top-24 z-900 rounded-md border bg-card/95 px-3 py-2 shadow"
       >
-        <TypographySmall as="p" class="text-xs font-medium">Hazard Placement Active</TypographySmall>
+        <TypographySmall as="p" class="text-xs font-medium"
+          >Hazard Placement Active</TypographySmall
+        >
         <TypographyMuted as="p" class="text-xs">
           {{
             hazardPlacementType === 'point'
@@ -221,10 +228,7 @@ const {
     </div>
 
     <!-- ── Hazard panel (inline, left of icon strip) ──────────────── -->
-    <div
-      v-if="isHazardSidebarOpen"
-      class="absolute inset-y-0 right-11 z-1000"
-    >
+    <div v-if="isHazardSidebarOpen" class="absolute inset-y-0 right-11 z-1000">
       <AdminMapHazardSidebar
         :hazards="hazards"
         :categories="hazardCategories"
@@ -244,10 +248,7 @@ const {
     </div>
 
     <!-- ── Layer panel (inline, left of icon strip) ───────────────── -->
-    <div
-      v-if="isSidebarOpen"
-      class="absolute inset-y-0 right-11 z-1000"
-    >
+    <div v-if="isSidebarOpen" class="absolute inset-y-0 right-11 z-1000">
       <AdminMapRightSidebar
         :layers="zoningLayers"
         :mapped-zones="mappedZones"
@@ -268,7 +269,6 @@ const {
     <!-- ── Vertical icon strip (always visible) ───────────────────── -->
     <div class="absolute inset-y-0 right-0 z-1001 flex w-11 shrink-0 flex-col border-l bg-card">
       <TooltipProvider :delay-duration="300">
-
         <!-- Layers -->
         <Tooltip>
           <TooltipTrigger as-child>
@@ -340,7 +340,6 @@ const {
             {{ showMapPoi ? 'Hide Map POI' : 'Show Map POI' }}
           </TooltipContent>
         </Tooltip>
-
       </TooltipProvider>
     </div>
   </div>
